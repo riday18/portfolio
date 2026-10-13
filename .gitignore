@@ -1,3 +1,6 @@
 .DS_Store
 *.part.mp4
 .tmp-*
+
+# Local Netlify folder
+.netlify
