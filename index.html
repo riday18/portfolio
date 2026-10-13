@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>riday.space</title>
+<meta name="description" content="Riday Raheja is a 3D artist working across product visualization, motion graphics, interior and event visualization.">
+<meta property="og:title" content="riday.space">
+<meta property="og:description" content="3D artist: product visualization, motion graphics, interior and event visualization.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#about">Skip to about</a>
+
+<header class="nav" id="nav">
+  <nav class="nav-links" aria-label="Main">
+    <a href="#work" data-section="work">work</a>
+    <a href="#contact" data-section="contact">contact</a>
+    <a href="#about" data-section="about">about</a>
+  </nav>
+  <a class="nav-logo" href="#work" id="nav-logo">riday.space</a>
+  <div class="nav-social" id="nav-social"></div>
+</header>
+
+<main>
+  <section class="stage" id="work" aria-label="Work">
+    <div class="intro" id="intro">
+      <div class="intro-photo" id="intro-photo"></div>
+      <p class="intro-text" id="intro-text"></p>
+    </div>
+
+    <div class="scene" id="scene" aria-hidden="true">
+      <div class="scene-art" id="scene-art"></div>
+      <div class="scene-screen" id="scene-screen"></div>
+    </div>
+
+    <ul class="collage" id="collage" aria-label="Projects"></ul>
+  </section>
+
+  <section class="about" id="about" aria-labelledby="about-title">
+    <div class="wrap">
+      <h2 class="glow-title" id="about-title">about</h2>
+      <p class="about-lead" id="about-lead"></p>
+      <ul class="roles" id="roles"></ul>
+
+      <h3 class="sub-title">operations</h3>
+      <p class="ops-intro" id="ops-intro"></p>
+      <div id="ops-list"></div>
+    </div>
+  </section>
+
+  <section class="contact" id="contact" aria-labelledby="contact-title">
+    <div class="wrap">
+      <h2 class="glow-title" id="contact-title">contact</h2>
+      <a class="contact-mail" id="contact-mail" href="#"></a>
+      <div class="contact-social" id="contact-social"></div>
+      <p class="contact-meta" id="contact-meta"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span id="foot-domain">riday.space</span>
+  <span id="foot-year"></span>
+</footer>
+
+<dialog class="viewer" id="viewer" aria-labelledby="viewer-title">
+  <div class="viewer-inner" id="viewer-inner"></div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

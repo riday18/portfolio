@@ -1,0 +1,493 @@
+{
+  "projects": [
+    {
+      "title": "Animations and Renders for Swadesh",
+      "year": "2025",
+      "category": "Events and promo",
+      "summary": "Animations and renders made for Swadesh.",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/animations-and-renders-for-swadesh/01.webp",
+      "preview": "/uploads/animations-and-renders-for-swadesh/preview.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/animations-and-renders-for-swadesh/video-1.mp4",
+          "caption": ""
+        },
+        {
+          "type": "Video file",
+          "file": "/uploads/animations-and-renders-for-swadesh/video-2.mp4",
+          "caption": ""
+        },
+        {
+          "type": "Video file",
+          "file": "/uploads/animations-and-renders-for-swadesh/video-3.mp4",
+          "caption": ""
+        },
+        {
+          "type": "Video file",
+          "file": "/uploads/animations-and-renders-for-swadesh/video-4.mp4",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/animations-and-renders-for-swadesh/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/animations-and-renders-for-swadesh/02.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 9
+    },
+    {
+      "title": "Product Renders for a Client",
+      "year": "2025",
+      "category": "Product and commercial",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/product-renders-for-a-client/01.webp",
+      "preview": "",
+      "description": "",
+      "media": [
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/02.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/03.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/04.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/05.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/06.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/07.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/08.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/09.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/product-renders-for-a-client/10.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 8
+    },
+    {
+      "title": "Sudocrypt 2021-22 Event Trailer, Dante's Inferno",
+      "year": "2025",
+      "category": "Events and promo",
+      "summary": "Event trailer for Sudocrypt 2021-22, themed on Dante's Inferno.",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/sudocrypt-2021-22-event-trailer-dantes-inferno/cover.webp",
+      "preview": "",
+      "description": "Worked on concept and art direction for this event trailer for a \"Dante's Inferno\" themed cryptic hunt.",
+      "media": [
+        {
+          "type": "Video link",
+          "url": "https://www.youtube.com/watch?v=V_HjXwoRlAM",
+          "caption": ""
+        }
+      ],
+      "relevance": 8
+    },
+    {
+      "title": "Pet Furniture Concept Renders for a Client",
+      "year": "2025",
+      "category": "Product and commercial",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/pet-furniture-concept-renders-for-a-client/01.webp",
+      "preview": "",
+      "description": "",
+      "media": [
+        {
+          "type": "Image",
+          "image": "/uploads/pet-furniture-concept-renders-for-a-client/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/pet-furniture-concept-renders-for-a-client/02.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/pet-furniture-concept-renders-for-a-client/03.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/pet-furniture-concept-renders-for-a-client/04.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/pet-furniture-concept-renders-for-a-client/05.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 7
+    },
+    {
+      "title": "DHL Stairs",
+      "year": "2025",
+      "category": "Product and commercial",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/dhl-stairs/cover.webp",
+      "preview": "/uploads/dhl-stairs/preview.webp",
+      "description": "An abstract animation with visual elements synced to audio.",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/dhl-stairs/video-1.mp4",
+          "caption": ""
+        }
+      ],
+      "relevance": 7
+    },
+    {
+      "title": "Exun 2020 Event Video Trailer",
+      "year": "2025",
+      "category": "Events and promo",
+      "summary": "Event video trailer for Exun 2020.",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/exun-2020-event-video-trailer/cover.webp",
+      "preview": "",
+      "description": "",
+      "media": [
+        {
+          "type": "Video link",
+          "url": "https://www.youtube.com/watch?v=rJCYkwHv5Rs",
+          "caption": ""
+        }
+      ],
+      "relevance": 6
+    },
+    {
+      "title": "Boolean Coffee",
+      "year": "2022",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/boolean-coffee/cover.webp",
+      "preview": "/uploads/boolean-coffee/preview.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/boolean-coffee/video-1.mp4",
+          "caption": ""
+        }
+      ],
+      "relevance": 6
+    },
+    {
+      "title": "Et Ares",
+      "year": "2020",
+      "category": "Personal work",
+      "summary": "A short film about Mars, made as a team.",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/et-ares/01.webp",
+      "preview": "",
+      "description": "Mission Artemis: one could say it's humanity's cradle to Luna. But as we continue to march through time, embracing deterrents that come our way, we must, nay, it is our duty to ask, what lies beyond and when will we get there? That's where we come in. To elucidate this hope of the human spirit, we present a short film — Et Ares — to showcase the awe, and often terror, inspiring features of Mars, and collective transcendental human aspirations towards this marvel.\n\n\"Et Ares\", the title itself translates to \"And Mars\", signifying in addition to our forthcoming plans for lunar occupation, we cannot forget our planetary neighbour - The Red Planet!\n\nWe've made a short film, with various scenes showing the different aspects of Mars, from visiting the planet, to stepping foot on it for the first time, as well as a rendering of a possible (and hopefully likely) future.\n\nAt a very uncertain time such as now, costs for outer space pursuits need to be justified passionately, to sustain the belief of people in the virtues of space exploration. This short film aims to help by reintroducing Mars as a prospective future in public imagination, reminding then why we chose to go exploring beyond into unknown realms in the first place. For curiosity. For scientific development. But beyond all else, as a natural extension of the yearning of our human spirit to seek out where we have never ventured before.\n\nTeam: Gunbir Singh Baveja, Ashvin Verma, Riday Raheja, Alankar Dutta, Inesh Tickoo",
+      "media": [
+        {
+          "type": "Video link",
+          "url": "https://www.youtube.com/watch?v=IAzuXhzspJQ",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/02.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/03.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/04.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/05.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/06.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/et-ares/07.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 5
+    },
+    {
+      "title": "Pouring a Waffle",
+      "year": "2022",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/pouring-a-waffle/cover.webp",
+      "preview": "/uploads/pouring-a-waffle/preview.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/pouring-a-waffle/video-1.mp4",
+          "caption": ""
+        }
+      ],
+      "relevance": 5
+    },
+    {
+      "title": "Sparkle Animation Loop",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/sparkle-animation-loop/cover.webp",
+      "preview": "/uploads/sparkle-animation-loop/01.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Image",
+          "image": "/uploads/sparkle-animation-loop/01.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 4
+    },
+    {
+      "title": "Abstract Art",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/abstract-art/01.webp",
+      "preview": "/uploads/abstract-art/preview.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/abstract-art/video-1.mp4",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/abstract-art/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/abstract-art/02.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 3
+    },
+    {
+      "title": "Misc Abstract Art",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/misc-abstract-art/01.webp",
+      "preview": "",
+      "description": "",
+      "media": [
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/02.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/03.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/04.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/05.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/06.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/07.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/misc-abstract-art/08.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 3
+    },
+    {
+      "title": "Gold Abstract Animation Loop",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/gold-abstract-animation-loop/cover.webp",
+      "preview": "/uploads/gold-abstract-animation-loop/preview.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/gold-abstract-animation-loop/video-1.mp4",
+          "caption": ""
+        }
+      ],
+      "relevance": 4
+    },
+    {
+      "title": "Room",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/room/01.webp",
+      "preview": "/uploads/room/preview.webp",
+      "description": "",
+      "media": [
+        {
+          "type": "Video file",
+          "file": "/uploads/room/video-1.mp4",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/room/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/room/02.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 5
+    },
+    {
+      "title": "Turret Animation Loop",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/turret-animation-loop/cover.webp",
+      "preview": "/uploads/turret-animation-loop/01.webp",
+      "description": "Model by Polyfjord on YouTube.",
+      "media": [
+        {
+          "type": "Image",
+          "image": "/uploads/turret-animation-loop/01.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 4
+    },
+    {
+      "title": "Arcade",
+      "year": "2021",
+      "category": "Personal work",
+      "summary": "",
+      "role": "",
+      "tools": "Blender",
+      "cover": "/uploads/arcade/01.webp",
+      "preview": "",
+      "description": "",
+      "media": [
+        {
+          "type": "Image",
+          "image": "/uploads/arcade/01.webp",
+          "caption": ""
+        },
+        {
+          "type": "Image",
+          "image": "/uploads/arcade/02.webp",
+          "caption": ""
+        }
+      ],
+      "relevance": 5
+    }
+  ]
+}

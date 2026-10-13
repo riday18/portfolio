@@ -1,0 +1,153 @@
+# Admin setup for riday.space
+# Change "repo" to your own GitHub username and repository name.
+backend:
+  name: github
+  repo: YOUR-GITHUB-USERNAME/portfolio
+  branch: main
+
+# Lets you test the admin on your own computer (see README).
+local_backend: true
+
+media_folder: "uploads"
+public_folder: "/uploads"
+
+collections:
+  - name: projects
+    label: Projects
+    files:
+      - name: projects
+        label: All projects
+        file: content/projects.json
+        fields:
+          - label: Projects
+            name: projects
+            widget: list
+            label_singular: project
+            summary: "{{fields.title}} (relevance {{fields.relevance}})"
+            fields:
+              - { label: Title, name: title, widget: string }
+              - label: Relevance (1 to 10)
+                name: relevance
+                widget: number
+                value_type: int
+                min: 1
+                max: 10
+                default: 5
+                hint: "10 = your best work. Higher relevance makes the image bigger and puts it closer to the monitor."
+              - { label: Year, name: year, widget: string }
+              - label: Category
+                name: category
+                widget: select
+                options: ["Events and promo", "Product and commercial", "Personal work"]
+              - { label: Collage image, name: cover, widget: image, required: false, hint: "Any size or shape. The collage reads the real proportions. Around 1600px on the long side, .webp or .jpg." }
+              - { label: Animated preview, name: preview, widget: image, required: false, hint: "Optional animated .webp that plays when someone hovers over the image." }
+              - { label: One-line summary, name: summary, widget: string, required: false }
+              - { label: Your role, name: role, widget: string, required: false }
+              - { label: Tools, name: tools, widget: string, required: false, default: Blender }
+              - { label: Description, name: description, widget: text, required: false, hint: "Leave a blank line between paragraphs." }
+              - label: Images and videos
+                name: media
+                widget: list
+                label_singular: item
+                required: false
+                summary: "{{fields.type}}: {{fields.caption}}"
+                fields:
+                  - label: Type
+                    name: type
+                    widget: select
+                    options: ["Image", "Video link", "Video file"]
+                    default: "Image"
+                  - { label: Image (still or animated .webp), name: image, widget: image, required: false }
+                  - { label: Video link (YouTube or Vimeo), name: url, widget: string, required: false }
+                  - { label: Video file (short .mp4), name: file, widget: file, required: false }
+                  - { label: Caption, name: caption, widget: string, required: false }
+
+  - name: experience
+    label: Experience
+    files:
+      - name: experience
+        label: Roles
+        file: content/experience.json
+        fields:
+          - label: Roles
+            name: entries
+            widget: list
+            label_singular: role
+            summary: "{{fields.org}}: {{fields.role}}"
+            fields:
+              - label: Type of role
+                name: group
+                widget: select
+                options: ["operations", "design"]
+                hint: "Operations roles get their own block in About. Design roles show as a short list."
+              - { label: Organisation, name: org, widget: string }
+              - { label: Role title, name: role, widget: string }
+              - { label: Place, name: place, widget: string, required: false }
+              - { label: Dates, name: dates, widget: string }
+              - { label: Tag (for example Placement year), name: tag, widget: string, required: false }
+              - { label: What you did, name: points, widget: list, field: { label: Point, name: point, widget: string } }
+
+  - name: settings
+    label: Site settings
+    files:
+      - name: site
+        label: Site settings
+        file: content/site.json
+        fields:
+          - { label: Domain shown in the navbar, name: domain, widget: string, default: riday.space }
+          - { label: Name, name: name, widget: string }
+          - { label: Intro text, name: intro, widget: text }
+          - { label: Profile photo, name: photo, widget: image, required: false }
+          - { label: About paragraph, name: about, widget: text }
+          - { label: Operations intro, name: operations_intro, widget: text }
+          - { label: Email, name: email, widget: string }
+          - { label: Instagram handle, name: instagram, widget: string, required: false }
+          - { label: LinkedIn URL, name: linkedin, widget: string, required: false, hint: "Full link, for example https://www.linkedin.com/in/your-name" }
+          - { label: Location, name: location, widget: string, required: false }
+
+          - label: Desk animation
+            name: scene
+            widget: object
+            collapsed: true
+            fields:
+              - { label: Desk animation (.webp), name: animation, widget: image, required: false, hint: "Export it to play once, not loop. Until you add one, a stand-in desk is drawn." }
+              - { label: Animation length (milliseconds), name: duration_ms, widget: number, value_type: int, default: 2500, hint: "The collage starts popping in after this. 2500 = 2.5 seconds." }
+              - { label: Artwork on the monitor, name: screen_image, widget: image, required: false, hint: "Leave empty if the artwork is already part of your animation." }
+              - { label: Animation width on desktop (% of screen), name: width_desktop, widget: number, value_type: float, default: 100 }
+              - { label: Animation width on phones (% of screen), name: width_mobile, widget: number, value_type: float, default: 170 }
+              - { label: Monitor screen, left edge (% of animation width), name: monitor_left, widget: number, value_type: float, default: 30.3 }
+              - { label: Monitor screen, top edge (% of animation height), name: monitor_top, widget: number, value_type: float, default: 44 }
+              - { label: Monitor screen, width (% of animation width), name: monitor_width, widget: number, value_type: float, default: 39.5 }
+              - { label: Monitor screen, height (% of animation height), name: monitor_height, widget: number, value_type: float, default: 22.1 }
+              - label: Areas to keep clear of images
+                name: clear_areas
+                widget: list
+                required: false
+                summary: "{{fields.left}}%, {{fields.top}}% ({{fields.width}} x {{fields.height}})"
+                hint: "Parts of the animation the collage should not cover, like the desk and the PC tower. Measured in % of the animation, like the monitor."
+                fields:
+                  - { label: Left (%), name: left, widget: number, value_type: float }
+                  - { label: Top (%), name: top, widget: number, value_type: float }
+                  - { label: Width (%), name: width, widget: number, value_type: float }
+                  - { label: Height (%), name: height, widget: number, value_type: float }
+
+          - label: Collage
+            name: collage
+            widget: object
+            collapsed: true
+            hint: "Open your site with ?tune on the end of the address to try these live with sliders."
+            fields:
+              - { label: Base size, name: base_size, widget: number, value_type: float, min: 0.1, max: 2, step: 0.01, default: 0.62, hint: "Image width next to the monitor, as a share of the monitor's width." }
+              - { label: Falloff strength, name: falloff, widget: number, value_type: float, min: 0, max: 5, step: 0.05, default: 0.9, hint: "How fast images shrink as they get further from the monitor. 0 = no shrinking." }
+              - { label: Falloff curve, name: falloff_curve, widget: number, value_type: float, min: 0.2, max: 5, step: 0.05, default: 1.4, hint: "Below 1 shrinks quickly then levels off. Above 1 stays big for longer, then drops." }
+              - { label: Smallest size, name: min_scale, widget: number, value_type: float, min: 0.05, max: 1, step: 0.01, default: 0.28, hint: "Images never shrink below this share of the base size." }
+              - { label: Relevance effect, name: relevance_weight, widget: number, value_type: float, min: 0, max: 1, step: 0.05, default: 0.75, hint: "0 = relevance only sets the order. 1 = relevance strongly changes size." }
+              - { label: Randomness, name: randomness, widget: number, value_type: float, min: 0, max: 1, step: 0.05, default: 0.35, hint: "Shuffles order, size and position a little. 0 = strict by relevance." }
+              - { label: Follow screen shape, name: spread, widget: number, value_type: float, min: 0, max: 1.5, step: 0.05, default: 0.85, hint: "How much the collage stretches sideways on wide screens and up and down on tall ones." }
+              - { label: Gap between images (px), name: gap, widget: number, value_type: float, min: 0, max: 100, default: 22 }
+              - { label: Float amount, name: float, widget: number, value_type: float, min: 0, max: 3, step: 0.05, default: 1 }
+              - { label: Cursor effect, name: cursor, widget: number, value_type: float, min: 0, max: 3, step: 0.05, default: 1 }
+              - { label: Hover size, name: hover_scale, widget: number, value_type: float, min: 1, max: 1.3, step: 0.01, default: 1.06 }
+              - { label: Phone size boost, name: mobile_scale, widget: number, value_type: float, min: 0.5, max: 3, step: 0.05, default: 1.5 }
+              - { label: Layout number, name: seed, widget: number, value_type: int, default: 7, hint: "Change it to get a different arrangement with the same settings." }
+              - { label: New layout on every visit, name: reshuffle, widget: boolean, default: false }
