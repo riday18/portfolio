@@ -2,7 +2,7 @@
 # Change "repo" to your own GitHub username and repository name.
 backend:
   name: github
-  repo: YOUR-GITHUB-USERNAME/portfolio
+  repo: xar018/portfolio
   branch: main
 
 # Lets you test the admin on your own computer (see README).
