@@ -1,24 +1,15 @@
 {
   "domain": "riday.space",
   "name": "Riday Raheja",
-  "intro": "Hi I’m Riday, a creative 3D artist with professional experience spanning product visualization, motion graphics, interior and event visualization. Scroll down to look at some of my work!",
-  "photo": "",
-  "about": "I make 3D renders, motion graphics and event visuals, mostly in Blender and Adobe Creative Suite. I'm finishing a BSc in Marketing & Management at Loughborough University.",
-  "operations_intro": "Alongside the design work, I've run the ground side of live sports events: logistics, vendors, venues and the people who make a match day happen.",
-  "email": "ridayraheja18@gmail.com",
-  "instagram": "riday.art",
-  "linkedin": "",
-  "location": "Loughborough, UK",
   "scene": {
-    "animation": "",
-    "duration_ms": 2500,
-    "screen_image": "",
-    "width_desktop": 100,
-    "width_mobile": 170,
-    "monitor_left": 30.3,
-    "monitor_top": 44.0,
     "monitor_width": 39.5,
+    "width_desktop": 100,
+    "animation": "",
+    "screen_image": "",
     "monitor_height": 22.1,
+    "monitor_left": 30.3,
+    "monitor_top": 44,
+    "duration_ms": 2500,
     "clear_areas": [
       {
         "left": 6.5,
@@ -32,22 +23,31 @@
         "width": 8.5,
         "height": 18
       }
-    ]
+    ],
+    "width_mobile": 170
   },
+  "intro": "Hi I’m Riday, a creative 3D artist with professional experience spanning product visualization, motion graphics, interior and event visualization. Scroll down to look at some of my work!",
+  "about": "I make 3D renders, motion graphics and event visuals, mostly in Blender and Adobe Creative Suite. I'm finishing a BSc in Marketing & Management at Loughborough University.",
+  "photo": "",
+  "instagram": "riday.art",
   "collage": {
-    "base_size": 0.62,
-    "falloff": 0.9,
-    "falloff_curve": 1.4,
-    "min_scale": 0.28,
-    "relevance_weight": 0.75,
-    "randomness": 0.35,
-    "gap": 22,
-    "spread": 0.85,
-    "float": 1,
-    "cursor": 1,
-    "hover_scale": 1.06,
-    "seed": 7,
+    "falloff_curve": 1.2,
     "reshuffle": false,
-    "mobile_scale": 1.5
-  }
+    "hover_scale": 1.06,
+    "mobile_scale": 1.5,
+    "base_size": 0.62,
+    "seed": 7,
+    "spread": 0.85,
+    "falloff": 0.7,
+    "gap": 45,
+    "cursor": 1,
+    "randomness": 0.225,
+    "float": 1,
+    "min_scale": 0.4,
+    "relevance_weight": 0.75
+  },
+  "location": "Loughborough, UK",
+  "operations_intro": "Alongside the design work, I've run the ground side of live sports events: logistics, vendors, venues and the people who make a match day happen.",
+  "email": "ridayraheja18@gmail.com",
+  "linkedin": ""
 }
