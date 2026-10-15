@@ -12,7 +12,7 @@
     "duration_ms": 600,
     "clear_areas": [
       {
-        "left": 15.0,
+        "left": 15,
         "top": 60.2,
         "width": 70.6,
         "height": 4.4
@@ -47,7 +47,7 @@
     "reshuffle": false,
     "hover_scale": 1.06,
     "mobile_scale": 1.5,
-    "base_size": 0.62,
+    "base_size": 0.54,
     "seed": 7,
     "spread": 0.85,
     "falloff": 0.7,
