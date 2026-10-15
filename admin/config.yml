@@ -113,8 +113,8 @@ collections:
               - { label: Desk animation (.webp), name: animation, widget: image, required: false, hint: "Export it to play once, not loop. Until you add one, a stand-in desk is drawn." }
               - { label: Animation length (milliseconds), name: duration_ms, widget: number, value_type: int, default: 2500, hint: "The collage starts popping in after this. 2500 = 2.5 seconds." }
               - { label: Artwork on the monitor, name: screen_image, widget: image, required: false, hint: "Leave empty if the artwork is already part of your animation." }
-              - { label: Animation width on desktop (% of screen), name: width_desktop, widget: number, value_type: float, default: 100 }
-              - { label: Animation width on phones (% of screen), name: width_mobile, widget: number, value_type: float, default: 170 }
+              - { label: Animation width on desktop (% of screen), name: width_desktop, widget: number, value_type: float, default: 50 }
+              - { label: Animation width on phones (% of screen), name: width_mobile, widget: number, value_type: float, default: 85 }
               - { label: Monitor screen, left edge (% of animation width), name: monitor_left, widget: number, value_type: float, default: 30.3 }
               - { label: Monitor screen, top edge (% of animation height), name: monitor_top, widget: number, value_type: float, default: 44 }
               - { label: Monitor screen, width (% of animation width), name: monitor_width, widget: number, value_type: float, default: 39.5 }
@@ -137,7 +137,7 @@ collections:
             collapsed: true
             hint: "Open your site with ?tune on the end of the address to try these live with sliders."
             fields:
-              - { label: Base size, name: base_size, widget: number, value_type: float, min: 0.1, max: 2, step: 0.01, default: 0.62, hint: "Image width next to the monitor, as a share of the monitor's width." }
+              - { label: Base size, name: base_size, widget: number, value_type: float, min: 0.1, max: 2, step: 0.01, default: 0.62, hint: "Size of the biggest images. 0.62 is about a quarter of the screen width." }
               - { label: Falloff strength, name: falloff, widget: number, value_type: float, min: 0, max: 5, step: 0.05, default: 0.9, hint: "How fast images shrink as they get further from the monitor. 0 = no shrinking." }
               - { label: Falloff curve, name: falloff_curve, widget: number, value_type: float, min: 0.2, max: 5, step: 0.05, default: 1.4, hint: "Below 1 shrinks quickly then levels off. Above 1 stays big for longer, then drops." }
               - { label: Smallest size, name: min_scale, widget: number, value_type: float, min: 0.05, max: 1, step: 0.01, default: 0.28, hint: "Images never shrink below this share of the base size." }

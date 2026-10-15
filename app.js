@@ -206,7 +206,10 @@
       var introBottom = intro.offsetTop + intro.offsetHeight;
       var gapTop = clamp(W * 0.027, 18, 52);
       mon.x = W / 2 - mon.w / 2;
-      mon.y = introBottom + gapTop;
+      /* keep the tallest part of the scene (e.g. a second monitor) clear of the intro */
+      var topPct = mt;
+      (Array.isArray(scene.clear_areas) ? scene.clear_areas : []).forEach(function (c) { topPct = Math.min(topPct, num(c.top, 100) / 100); });
+      mon.y = introBottom + gapTop + (mt - topPct) * sh;
       var sx = W / 2 - sw * (ml + mw / 2);
       var sy = mon.y - sh * mt;
       var navH = document.getElementById("nav").offsetHeight;
@@ -246,7 +249,8 @@
     function layout(g, o, seed) {
       var rng = rngFrom(seed);
       var W = g.W, mon = g.mon;
-      var unit = mon.w;
+      /* tile sizes follow the screen width, so resizing the desk scene doesn't resize the collage */
+      var unit = W * 0.395 * (g.mobile ? 1.7 : 1);
       var scaleVW = clamp(W / 1920, 0.5, 1.4);
       var gap = Math.max(6, num(o.gap, 22) * scaleVW);
       var margin = Math.max(10, gap * 0.8);
