@@ -112,6 +112,8 @@
     if (site.photo) photo.innerHTML = '<img src="' + esc(site.photo) + '" alt="' + esc(site.name || "") + '">';
     else photo.textContent = String(site.name || "R").charAt(0);
     $("#intro-text").textContent = site.intro || "";
+    $("#screen-text").textContent = site.intro || "";
+    if (site.photo) $("#screen-photo").innerHTML = '<img src="' + esc(site.photo) + '" alt="">';
 
     $("#about-lead").textContent = site.about || "";
     $("#ops-intro").textContent = site.operations_intro || "";
@@ -131,7 +133,7 @@
     $("#contact-meta").textContent = site.location || "";
 
     /* active nav link */
-    var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav-links a"));
+    var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav-links a, .screen-nav a"));
     function setActive(id) { navLinks.forEach(function (a) { a.setAttribute("aria-current", a.getAttribute("data-section") === id ? "true" : "false"); }); }
     setActive("work");
     if ("IntersectionObserver" in window) {
@@ -176,17 +178,46 @@
     });
 
     var sceneReady;
+    var playScene = function () { return Promise.resolve(); };
     if (scene.animation) {
-      sceneArt.innerHTML = '<img alt="" decoding="async">';
-      var sImg = sceneArt.firstChild;
-      sceneReady = new Promise(function (res) {
-        sImg.onload = function () {
-          if (sImg.naturalWidth) sceneAspect = sImg.naturalHeight / sImg.naturalWidth;
-          res(num(scene.duration_ms, 2500));
-        };
-        sImg.onerror = function () { res(0); };
+      /* Download the animation first, then start it from frame one only when the page is ready,
+         so it never plays out while invisible. Each play gets its own object URL so it restarts. */
+      var sceneBlob = null;
+      var showImg = function (src) {
+        return new Promise(function (res) {
+          var im = new Image();
+          im.alt = "";
+          im.onload = im.onerror = function () { res(); };
+          im.src = src;
+          sceneArt.innerHTML = "";
+          sceneArt.appendChild(im);
+        });
+      };
+      sceneReady = fetch(scene.animation).then(function (r) {
+        if (!r.ok) throw new Error("animation not found");
+        return r.blob();
+      }).then(function (b) {
+        sceneBlob = b;
+        return new Promise(function (res) {
+          var u = URL.createObjectURL(b), m = new Image();
+          m.onload = function () {
+            if (m.naturalWidth) sceneAspect = m.naturalHeight / m.naturalWidth;
+            URL.revokeObjectURL(u);
+            res(num(scene.duration_ms, 2500));
+          };
+          m.onerror = function () { URL.revokeObjectURL(u); res(0); };
+          m.src = u;
+        });
+      }).catch(function () {
+        return showImg(scene.animation).then(function () {
+          var m = sceneArt.firstChild;
+          if (m && m.naturalWidth) sceneAspect = m.naturalHeight / m.naturalWidth;
+          return num(scene.duration_ms, 2500);
+        });
       });
-      sImg.src = scene.animation;
+      playScene = function () {
+        return sceneBlob ? showImg(URL.createObjectURL(sceneBlob)) : Promise.resolve();
+      };
     } else {
       sceneEl.classList.add("is-placeholder");
       sceneArt.innerHTML = PLACEHOLDER_SCENE;
@@ -194,37 +225,78 @@
     }
     if (scene.screen_image) screenEl.innerHTML = '<img src="' + esc(scene.screen_image) + '" alt="">';
 
+    function pct(v, d) { return num(v, d) / 100; }
+    function sceneBox() {
+      /* the part of the render that has something in it: the monitor plus every clear area */
+      var l = pct(scene.monitor_left, 30), t = pct(scene.monitor_top, 40);
+      var r = l + pct(scene.monitor_width, 30), b = t + pct(scene.monitor_height, 20);
+      (Array.isArray(scene.clear_areas) ? scene.clear_areas : []).forEach(function (c) {
+        l = Math.min(l, pct(c.left, 100)); t = Math.min(t, pct(c.top, 100));
+        r = Math.max(r, pct(c.left, 0) + pct(c.width, 0)); b = Math.max(b, pct(c.top, 0) + pct(c.height, 0));
+      });
+      return { l: l, t: t, r: r, b: b };
+    }
+
     function computeGeom() {
       var W = stage.clientWidth;
       var H = window.innerHeight;
       var mobile = W < 700;
+      var navH = document.getElementById("nav").offsetHeight;
       var sw = W * num(mobile ? scene.width_mobile : scene.width_desktop, 100) / 100;
       var sh = sw * sceneAspect;
-      var ml = num(scene.monitor_left, 30.3) / 100, mt = num(scene.monitor_top, 44) / 100;
-      var mw = num(scene.monitor_width, 39.5) / 100, mh = num(scene.monitor_height, 22.1) / 100;
-      var mon = { w: sw * mw, h: sh * mh };
-      var introBottom = intro.offsetTop + intro.offsetHeight;
-      var gapTop = clamp(W * 0.027, 18, 52);
-      mon.x = W / 2 - mon.w / 2;
-      /* keep the tallest part of the scene (e.g. a second monitor) clear of the intro */
-      var topPct = mt;
-      (Array.isArray(scene.clear_areas) ? scene.clear_areas : []).forEach(function (c) { topPct = Math.min(topPct, num(c.top, 100) / 100); });
-      mon.y = introBottom + gapTop + (mt - topPct) * sh;
-      var sx = W / 2 - sw * (ml + mw / 2);
-      var sy = mon.y - sh * mt;
-      var navH = document.getElementById("nav").offsetHeight;
-      var introRect = { x: intro.offsetLeft, y: intro.offsetTop + navH * 0.6, w: intro.offsetWidth, h: introBottom - intro.offsetTop - navH * 0.6 };
-      var ph = intro.querySelector(".intro-photo"), tx = intro.querySelector(".intro-text");
-      if (ph && tx) {
-        var l = Math.min(ph.offsetLeft, tx.offsetLeft), r = Math.max(ph.offsetLeft + ph.offsetWidth, tx.offsetLeft + tx.offsetWidth);
-        var t = Math.min(ph.offsetTop, tx.offsetTop), b = Math.max(ph.offsetTop + ph.offsetHeight, tx.offsetTop + tx.offsetHeight);
-        introRect = { x: intro.offsetLeft + l, y: intro.offsetTop + t, w: r - l, h: b - t };
-      }
+      var box = sceneBox();
+      /* desk centred across the page and in the space under the navbar */
+      var sx = W / 2 - sw * (box.l + box.r) / 2;
+      var sy = navH + (H - navH) / 2 - sh * (box.t + box.b) / 2;
+      var mon = {
+        x: sx + sw * pct(scene.monitor_left, 30), y: sy + sh * pct(scene.monitor_top, 40),
+        w: sw * pct(scene.monitor_width, 30), h: sh * pct(scene.monitor_height, 20)
+      };
       var clear = (Array.isArray(scene.clear_areas) ? scene.clear_areas : []).map(function (c) {
-        return { x: sx + sw * num(c.left, 0) / 100, y: sy + sh * num(c.top, 0) / 100, w: sw * num(c.width, 0) / 100, h: sh * num(c.height, 0) / 100 };
+        return { x: sx + sw * pct(c.left, 0), y: sy + sh * pct(c.top, 0), w: sw * pct(c.width, 0), h: sh * pct(c.height, 0) };
       }).filter(function (c) { return c.w > 0 && c.h > 0; });
-      return { W: W, H: H, navH: navH, mobile: mobile, mon: mon, scene: { x: sx, y: sy, w: sw, h: sh }, intro: introRect, clear: clear };
+      return { W: W, H: H, navH: navH, mobile: mobile, mon: mon, scene: { x: sx, y: sy, w: sw, h: sh }, bottom: sy + sh * box.b, clear: clear };
     }
+
+    /* maps a flat w x h box onto four corner points (perspective), as a CSS matrix3d */
+    function quadMatrix(w, h, q) {
+      var x0 = q[0][0], y0 = q[0][1], x1 = q[1][0], y1 = q[1][1], x2 = q[2][0], y2 = q[2][1], x3 = q[3][0], y3 = q[3][1];
+      var dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
+      var dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
+      var a, b, c, d, e, f, g = 0, k = 0;
+      if (Math.abs(dx3) < 1e-9 && Math.abs(dy3) < 1e-9) {
+        a = x1 - x0; b = x3 - x0; d = y1 - y0; e = y3 - y0;
+      } else {
+        var det = dx1 * dy2 - dx2 * dy1;
+        g = (dx3 * dy2 - dx2 * dy3) / det;
+        k = (dx1 * dy3 - dx3 * dy1) / det;
+        a = x1 - x0 + g * x1; b = x3 - x0 + k * x3; d = y1 - y0 + g * y1; e = y3 - y0 + k * y3;
+      }
+      c = x0; f = y0;
+      var m = [a / w, d / w, 0, g / w, b / h, e / h, 0, k / h, 0, 0, 1, 0, c, f, 0, 1];
+      return "matrix3d(" + m.map(function (v) { return +v.toFixed(8); }).join(",") + ")";
+    }
+
+    var scenePx = $("#scene-px"), screenMain = $("#screen-main"), screenNav = $("#screen-nav");
+    (function setupScreens() {
+      var P = 1920;
+      screenMain.style.left = pct(scene.monitor_left, 30) * P + "px";
+      screenMain.style.top = pct(scene.monitor_top, 40) * P + "px";
+      screenMain.style.width = pct(scene.monitor_width, 30) * P + "px";
+      screenMain.style.height = pct(scene.monitor_height, 20) * P + "px";
+      var q = Array.isArray(scene.nav_quad) && scene.nav_quad.length === 4 ? scene.nav_quad : null;
+      if (q) {
+        screenNav.style.transform = quadMatrix(246, 488, q.map(function (p) { return [num(p[0], 0) / 100 * P, num(p[1], 0) / 100 * P]; }));
+      } else {
+        screenNav.hidden = true;
+      }
+      /* hide the top bar's links while the desk menu is on screen */
+      if (q && "IntersectionObserver" in window) {
+        new IntersectionObserver(function (list) {
+          document.body.classList.toggle("desk-menu-visible", list[0].isIntersecting && sceneEl.classList.contains("screens-on"));
+        }, { threshold: 0.6 }).observe(screenNav);
+      }
+    })();
 
     function placeScene(g) {
       sceneEl.style.left = g.scene.x + "px";
@@ -236,6 +308,7 @@
       screenEl.style.top = (g.mon.y - s.y) + "px";
       screenEl.style.width = g.mon.w + "px";
       screenEl.style.height = g.mon.h + "px";
+      scenePx.style.transform = "scale(" + (g.scene.w / 1920) + ")";
     }
 
     /* ---------- the collage layout ----------
@@ -264,8 +337,7 @@
       var top = g.navH + gap;
 
       var blocked = [
-        { x: mon.x, y: mon.y, w: mon.w, h: mon.h },
-        g.intro
+        { x: mon.x, y: mon.y, w: mon.w, h: mon.h }
       ].concat(g.clear || []);
 
       var order = items.map(function (it, i) {
@@ -342,7 +414,7 @@
       var res = layout(geom, opts, seed);
       res.tiles.sort(function (a, b) { return a.d - b.d; });
       collageEl.innerHTML = res.tiles.map(tileHTML).join("");
-      var deskBottom = geom.mon.y + geom.mon.h * 1.5;
+      var deskBottom = geom.bottom + res.gap * 2;
       stage.style.height = Math.max(window.innerHeight, res.bottom + res.gap * 3, deskBottom) + "px";
       var lis = collageEl.children;
       var stagger = clamp(1500 / Math.max(res.tiles.length, 1), 35, 90);
@@ -370,8 +442,13 @@
       revealed = true;
       sceneEl.classList.add("is-in");
       return sceneReady.then(function (ms) {
+        return playScene().then(function () { return ms; });
+      }).then(function (ms) {
         setTimeout(function () {
           screenEl.classList.add("is-in");
+          sceneEl.classList.add("screens-on");
+          var r = screenNav.getBoundingClientRect();
+          document.body.classList.toggle("desk-menu-visible", !screenNav.hidden && r.bottom > 0 && r.top < window.innerHeight);
           Array.prototype.forEach.call(collageEl.children, function (li) { li.classList.add(reduceMotion ? "is-static" : "is-in"); });
         }, reduceMotion ? 0 : ms);
       });
@@ -517,7 +594,7 @@
       box.addEventListener("click", function (e) {
         var a = e.target.getAttribute("data-a");
         if (a === "seed") { seed = Math.floor(Math.random() * 100000); render(false); sync(); }
-        if (a === "replay") { revealed = false; sceneEl.classList.remove("is-in"); screenEl.classList.remove("is-in"); render(true); requestAnimationFrame(function () { reveal(); }); }
+        if (a === "replay") { revealed = false; sceneEl.classList.remove("is-in", "screens-on"); screenEl.classList.remove("is-in"); render(true); requestAnimationFrame(function () { reveal(); }); }
         if (a === "copy" && navigator.clipboard) navigator.clipboard.writeText(pre.textContent).then(function () { e.target.textContent = "Copied"; setTimeout(function () { e.target.textContent = "Copy values"; }, 1400); });
       });
       sync();

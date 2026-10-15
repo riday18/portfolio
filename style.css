@@ -155,7 +155,7 @@ img, video, iframe { max-width: 100%; display: block; }
 }
 .scene.is-in { opacity: 1; }
 .scene-art, .scene-art img, .scene-art svg { width: 100%; height: 100%; display: block; }
-.scene.is-in .scene-art { animation: scene-in 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.scene.is-placeholder.is-in .scene-art { animation: scene-in 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes scene-in {
   from { opacity: 0; transform: translateY(4%) scale(0.96); }
   to { opacity: 1; transform: none; }
@@ -168,6 +168,90 @@ img, video, iframe { max-width: 100%; display: block; }
 }
 .scene-screen.is-in { opacity: 1; }
 .scene-screen img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- the two desk screens: intro on the main monitor, menu on the vertical one ----------
+   .scene-px is drawn at the render's own pixel size (1920 x 1920) and scaled to fit, so everything
+   inside it is positioned in render pixels. */
+.scene-px {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1920px;
+  transform-origin: 0 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+.scene.screens-on .scene-px { opacity: 1; }
+
+.screen-main {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 0 32px 0 30px;
+  overflow: hidden;
+}
+.screen-photo {
+  flex: 0 0 auto;
+  width: 161px;
+  height: 161px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1c1c1c;
+}
+.screen-photo img { width: 100%; height: 100%; object-fit: cover; }
+.screen-text {
+  margin: 0;
+  font-weight: 500;
+  font-size: 19.5px;
+  line-height: 23px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.screen-nav {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 246px;
+  height: 488px;
+  transform-origin: 0 0;
+}
+.screen-nav a {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-weight: 600;
+  font-size: 36px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  pointer-events: auto;
+  transition: color 0.25s, text-shadow 0.25s;
+}
+.screen-nav a:nth-child(1) { top: 28%; }
+.screen-nav a:nth-child(2) { top: 50%; }
+.screen-nav a:nth-child(3) { top: 72%; }
+.screen-nav a:hover, .screen-nav a:focus-visible { color: #fff; text-shadow: 0 0 22px rgba(255, 255, 255, 0.9); }
+
+/* the old intro block now lives on the monitor; keep it for screen readers and search engines */
+.intro {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+/* the top bar's links hide while the desk menu is on screen */
+.nav-links { transition: opacity 0.3s ease; }
+body.desk-menu-visible .nav-links { opacity: 0; pointer-events: none; }
 
 /* ---------- collage ---------- */
 .collage { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; z-index: 2; pointer-events: none; }
@@ -404,6 +488,7 @@ img, video, iframe { max-width: 100%; display: block; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .tile.is-in .tile-pop { animation: none; }
-  .scene.is-in .scene-art, .viewer[open] { animation: none; }
+  .scene.is-placeholder.is-in .scene-art, .viewer[open] { animation: none; }
+  .scene-px { transition: none; }
   .tile-a, .tile-glow { transition: none; }
 }

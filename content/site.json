@@ -3,13 +3,13 @@
   "name": "Riday Raheja",
   "scene": {
     "monitor_width": 32.55,
-    "width_desktop": 50,
-    "animation": "/uploads/scene/desk.webp",
+    "width_desktop": 99,
+    "animation": "/uploads/scene/desk-anim.webp",
     "screen_image": "",
     "monitor_height": 18.13,
     "monitor_left": 31.46,
     "monitor_top": 40.16,
-    "duration_ms": 600,
+    "duration_ms": 1120,
     "clear_areas": [
       {
         "left": 15,
@@ -36,11 +36,29 @@
         "height": 20.4
       }
     ],
-    "width_mobile": 85
+    "width_mobile": 139,
+    "nav_quad": [
+      [
+        64.69,
+        34.35
+      ],
+      [
+        77.5,
+        33.89
+      ],
+      [
+        77.5,
+        59.76
+      ],
+      [
+        64.69,
+        59.3
+      ]
+    ]
   },
   "intro": "Hi, I’m Riday, a 3D artist working on product visualization, motion graphics, interior and event visuals. Most of it starts in Blender and ends up somewhere on this page. Away from the screen, I’ve worked in operations and logistics for live sports events.",
   "about": "I make 3D renders, motion graphics and event visuals, mostly in Blender and Adobe Creative Suite. I'm finishing a BSc in Marketing & Management at Loughborough University.",
-  "photo": "",
+  "photo": "/uploads/profile.webp",
   "instagram": "riday.art",
   "collage": {
     "falloff_curve": 1.2,
