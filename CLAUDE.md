@@ -16,7 +16,7 @@ Personal portfolio for Riday Raheja, a 3D artist (product visualization, motion 
   - Frame "home page" (2:3): landing page.
   - Frame "Animations" (11:7): collage tiles and the hover state.
 - Mostly a one-pager with a decent scroll: landing (work) → about (includes operations roles) → contact.
-- Black background, Inter. Navbar: 111px black bar (at 1920 wide) with `box-shadow: 0 4px 59.2px rgba(255,255,255,0.25)`; links "work / contact / about" left, glowing "riday.space" logo centred (Inter Black, white text-shadow), Instagram / LinkedIn / Mail icons right. Active link glows.
+- Black background, Inter. Navbar: 111px black bar (at 1920 wide) with `box-shadow: 0 4px 59.2px rgba(255,255,255,0.25)`; links "work / about / contact" left, glowing "riday.space" logo centred (Inter Black, white text-shadow), Instagram / LinkedIn / Mail icons right. Active link glows.
 - Intro under the navbar: round profile photo + the intro text, centred.
 - Sizes scale from the 1920px Figma frame using clamp().
 
