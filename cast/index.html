@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cast</title>
+<style>
+  :root{--bg:#0b0b0c;--fg:#f2f2f2;--mut:#8a8a8f;--line:#26262a;--card:#161618}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,system-ui,"Helvetica Neue",Arial,sans-serif}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px;text-align:center}
+  h1{font-weight:500;letter-spacing:.04em;margin:0;font-size:22px;color:var(--mut)}
+  .code{font-size:min(28vw,220px);font-weight:600;letter-spacing:.08em;line-height:1}
+  button,input{font:inherit;font-size:20px;padding:14px 22px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+  button{cursor:pointer}
+  button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  input{width:7ch;text-align:center;letter-spacing:.2em}
+  .mut{color:var(--mut);font-size:16px;max-width:38ch;margin:0}
+  video{position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;background:#000;display:none}
+  #unmute{position:fixed;bottom:24px;right:24px;display:none;opacity:.85}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="home" class="wrap">
+  <h1>CAST</h1>
+  <button class="primary" id="goWatch">Watch on this screen</button>
+  <button id="goShare">Share this computer's screen</button>
+</div>
+
+<div id="watch" class="wrap hidden">
+  <h1>Enter this code on your Mac</h1>
+  <div class="code" id="code">····</div>
+  <p class="mut" id="wstatus">Connecting…</p>
+</div>
+
+<div id="share" class="wrap hidden">
+  <h1>Share to TV</h1>
+  <div><input id="pin" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off"> <button class="primary" id="start">Start</button></div>
+  <p class="mut" id="sstatus">Type the code shown on the PS5.</p>
+  <button id="stop" class="hidden">Stop sharing</button>
+</div>
+
+<video id="v" autoplay playsinline muted></video>
+<button id="unmute">Sound on</button>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const PREFIX = 'ridaycast-';
+const show = id => ['home','watch','share'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+const isConsole = /PlayStation|PS5/i.test(navigator.userAgent);
+const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+const q = new URLSearchParams(location.search);
+
+/* ---------- PS5 / TV side ---------- */
+let wpeer;
+function watch(){
+  show('watch');
+  if (!window.RTCPeerConnection || !window.Peer){
+    $('wstatus').textContent = "This browser can't receive the stream (no WebRTC support).";
+    return;
+  }
+  const pin = String(Math.floor(1000 + Math.random()*9000));
+  wpeer = new Peer(PREFIX + pin);
+  wpeer.on('open', () => { $('code').textContent = pin; $('wstatus').textContent = 'Waiting for your Mac…'; });
+  wpeer.on('error', e => {
+    if (e.type === 'unavailable-id'){ wpeer.destroy(); watch(); return; }
+    $('wstatus').textContent = 'Connection error: ' + e.type;
+  });
+  wpeer.on('disconnected', () => { try { wpeer.reconnect(); } catch(_){} });
+  wpeer.on('call', call => {
+    call.answer();
+    call.on('stream', s => {
+      const v = $('v');
+      v.srcObject = s; v.style.display = 'block';
+      v.play().catch(() => {});
+      if (s.getAudioTracks().length) $('unmute').style.display = 'block';
+    });
+    call.on('close', ended);
+    call.peerConnection.addEventListener('iceconnectionstatechange', () => {
+      const st = call.peerConnection.iceConnectionState;
+      if (st === 'failed' || st === 'closed') ended();
+    });
+  });
+}
+function ended(){
+  $('v').style.display = 'none'; $('v').srcObject = null;
+  $('unmute').style.display = 'none';
+  $('wstatus').textContent = 'Stream ended. Waiting for your Mac…';
+}
+$('unmute').onclick = () => { const v = $('v'); v.muted = false; v.play(); $('unmute').style.display = 'none'; };
+
+/* ---------- Mac side ---------- */
+let stream, call, speer;
+async function start(){
+  const pin = $('pin').value.trim();
+  if (!/^\d{4}$/.test(pin)){ $('sstatus').textContent = 'Enter the 4-digit code from the PS5.'; return; }
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 30, max: 60 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: true
+    });
+  } catch(e){ $('sstatus').textContent = 'Screen sharing was cancelled or blocked.'; return; }
+
+  $('sstatus').textContent = 'Connecting…';
+  $('start').disabled = true;
+  speer = new Peer();
+  speer.on('open', () => {
+    call = speer.call(PREFIX + pin, stream);
+    if (!call){ stopShare('Could not reach that screen.'); return; }
+    const pc = call.peerConnection;
+    pc.addEventListener('iceconnectionstatechange', () => {
+      const st = pc.iceConnectionState;
+      if (st === 'connected' || st === 'completed'){
+        $('sstatus').textContent = 'Sharing to your TV.';
+        $('stop').classList.remove('hidden');
+        boostBitrate(pc);
+      } else if (st === 'failed'){
+        stopShare('Connection failed. Make sure the Mac and PS5 are on the same Wi-Fi.');
+      }
+    });
+    call.on('close', () => stopShare('Stopped.'));
+  });
+  speer.on('error', e => stopShare(e.type === 'peer-unavailable'
+    ? 'No screen with that code. Check the code on the PS5.'
+    : 'Connection error: ' + e.type));
+  stream.getVideoTracks()[0].onended = () => stopShare('Stopped.');
+}
+function boostBitrate(pc){
+  pc.getSenders().forEach(s => {
+    if (!s.track || s.track.kind !== 'video') return;
+    const p = s.getParameters();
+    if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+    p.encodings[0].maxBitrate = 8_000_000;
+    p.degradationPreference = 'maintain-resolution';
+    s.setParameters(p).catch(() => {});
+  });
+}
+function stopShare(msg){
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (call) try { call.close(); } catch(_){}
+  if (speer) try { speer.destroy(); } catch(_){}
+  stream = call = speer = null;
+  $('start').disabled = false;
+  $('stop').classList.add('hidden');
+  if (msg) $('sstatus').textContent = msg;
+}
+$('start').onclick = start;
+$('pin').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
+$('stop').onclick = () => stopShare('Stopped.');
+
+/* ---------- routing ---------- */
+$('goWatch').onclick = watch;
+$('goShare').onclick = () => { show('share'); $('pin').focus(); };
+if (isConsole || q.has('watch') || !canShare) watch();
+else if (q.has('share')) { show('share'); $('pin').focus(); }
+</script>
+</body>
+</html>
