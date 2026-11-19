@@ -38,17 +38,20 @@ Personal portfolio for Riday Raheja, a 3D artist (product visualization, motion 
   - Adding `?tune` to the URL opens a live slider panel with a falloff-curve graph.
   - Until the real desk webp is uploaded, a stand-in desk SVG is drawn. When the webp arrives, set `scene.monitor_*` (monitor screen box in % of the webp) and `scene.clear_areas` to match it.
   - Respect `prefers-reduced-motion` (no float, no pop-in, no simulation lag).
-- Scroll (app.js, `render` / `simulate`):
+- Scroll (app.js, `render` / `bake` / `show`):
   - `.stage` is a tall scroll track; `.stage-pin` is sticky at 100vh and holds the desk and tiles.
-  - The desk moves up 1:1 with the scroll and is gone (behind the navbar) at `P_OFF` (0.8) of the track.
-  - Each tile has a collage spot (A) and a grid cell (B). Cells come from `gridLayout` (column count that covers the most screen), paired closest-first. Tiles drift A → B with staggered easing, via a spring, pushed out of the desk's shape (monitor + clear areas, preferring sideways) and apart from each other.
-  - Growth: starts when the first tile beside the desk has dropped below it (`plan.g0`), finishes just after the desk is off screen (`plan.g1`).
-  - Tunables in `site.json` → `collage`: `grid_crop` (0 = images keep their shapes in the grid, 1 = all cropped to the cell shape) and `scroll_length` (1 = desk moves at scroll speed). Both are in `?tune` and the admin.
+  - The desk moves up 1:1 with the scroll and is gone (behind the navbar) at `P_OFF` (0.72); projects are settled in their grid cells by `P_SET` (0.9).
+  - Paths are **baked once** per layout (`bake`, 480 fixed steps): each tile springs (speed-capped) from its collage spot (A) towards its grid cell (B), its target is steered round the side of the rising desk ahead of time (or rides up if there's no room on screen), neighbours give way softly, the desk shape is solid. Paths are then smoothed and pinned to A at the start and B at the end. At runtime `show(p)` just reads the paths, with one global easing on the scroll position, so motion is identical every time. Don't go back to live per-frame physics: it was jittery and inconsistent.
+  - Cells come from `gridLayout`; tiles are paired with cells by `bestPairs` (Hungarian, minimum total distance, so paths don't cross), and re-paired from their actual positions when the desk leaves.
+  - Growth: projects under the desk start growing when the first project beside the desk drops below it; the others start as they drop below the desk and catch up; all finish at `g1` (just after the desk is gone).
+  - Float and cursor push fade out per tile as soon as it moves off its collage spot, so it holds its path.
+  - Tunables in `site.json` → `collage`: `grid_crop` and `scroll_length`. Both are in `?tune` and the admin. `?debug` exposes `window.__collage` (tiles with baked paths).
+- Message bubble: a white iMessage-style bubble fixed at the lower right (`.bubble`), text from `site.cta_text`, link from `site.cta_link` (defaults to mailto the site email). Pops in after the collage; on hover it scales up slightly (no movement) and a small reply button pops up at its bottom-right corner.
 
 ## Content rules
 
-- About section: short bio, design roles list (Spalba, Swadesh, Designbox), then an operations block (Katalyst Sports, Legends League Cricket). Roughly 65% weight on 3D/design, 35% on operations.
-- The site is a showcase of past work. No "hire me", "available for commissions" or pricing buttons. Contact section just shows email and socials.
+- About section (currently removed, see above): short bio, design roles list (Spalba, Swadesh, Designbox), then an operations block (Katalyst Sports, Legends League Cricket). Roughly 65% weight on 3D/design, 35% on operations.
+- The site is a showcase of past work. The only call to action is the message bubble Riday asked for ("Do you like my style? Let’s work together."). No pricing or "available for commissions" banners.
 
 ## Still to do
 

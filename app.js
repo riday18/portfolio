@@ -393,16 +393,51 @@
     if (opts.reshuffle) seed = Math.floor(Math.random() * 1e9);
 
     /* ---------- scrolling: the desk rises, the collage flows into a grid ----------
-       The stage stays pinned while you scroll. The desk moves up with the scroll and leaves the screen
-       at P_OFF of the way through. Each project drifts from its collage spot towards a grid cell, pushed
-       around the desk's shape and its neighbours by a small spring simulation. Projects start growing
-       when the first one beside the desk has dropped below it, and finish just after the desk is gone. */
-    var P_OFF = 0.8;
+       The stage stays pinned while you scroll. The desk moves up with the scroll and is gone at P_OFF.
+       Every project's path is worked out once, up front ("baked"), by stepping through the scroll in
+       small fixed steps: each project is pulled from its collage spot towards its grid cell, kept out of
+       the desk's shape and out of its neighbours. Scrolling then just looks up a point on those paths,
+       so the motion is the same every time and can't jam. Projects under the desk start growing first,
+       when the first one beside the desk has dropped below it; the rest start as they drop below the
+       desk and catch up, all finishing just after the desk has gone. */
+    var P_OFF = 0.72;   /* desk gone */
+    var P_SET = 0.9;    /* projects in their grid cells */
+    var STEPS = 480;
     var plan = null;
+    var shownP = null;
     function lerp(a, b, t) { return a + (b - a) * t; }
     function smooth(a, b, x) { var t = b > a ? clamp((x - a) / (b - a), 0, 1) : (x >= b ? 1 : 0); return t * t * (3 - 2 * t); }
     function easeIO(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
     function cropAspect(a, cellA, crop) { return Math.exp(lerp(Math.log(a), Math.log(cellA), crop)); }
+
+    /* pairs items with places so the total distance travelled is as small as possible (Hungarian method).
+       With straight-line moves, an assignment like this never has two paths crossing. cost[i][j] = distance. */
+    function bestPairs(cost) {
+      var n = cost.length, INF = 1e18;
+      var u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0), pp = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+      for (var i = 1; i <= n; i++) {
+        pp[0] = i;
+        var j0 = 0, minv = new Array(n + 1).fill(INF), used = new Array(n + 1).fill(false);
+        do {
+          used[j0] = true;
+          var i0 = pp[j0], delta = INF, j1 = 0;
+          for (var j = 1; j <= n; j++) {
+            if (used[j]) continue;
+            var cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+            if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+            if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+          }
+          for (j = 0; j <= n; j++) {
+            if (used[j]) { u[pp[j]] += delta; v[j] -= delta; } else minv[j] -= delta;
+          }
+          j0 = j1;
+        } while (pp[j0] !== 0);
+        do { var jn = way[j0]; pp[j0] = pp[jn]; j0 = jn; } while (j0);
+      }
+      var out = new Array(n);
+      for (var jj = 1; jj <= n; jj++) if (pp[jj]) out[pp[jj] - 1] = jj - 1;
+      return out;
+    }
 
     /* the most even grid for this many images on this screen: tries every column count and keeps
        the one where the images (fitted into their cells) cover the most of the screen */
@@ -433,8 +468,6 @@
       return { cells: cells, cw: best.cw, ch: best.ch };
     }
 
-    function migration(t, p) { return easeIO(clamp((p - t.s) / (plan.g1 - t.s), 0, 1)); }
-
     function render(animate) {
       geom = computeGeom();
       placeScene(geom);
@@ -447,33 +480,24 @@
       var gap = res.gap;
       var crop = clamp(num(opts.grid_crop, 0.7), 0, 1);
 
-      /* how far the desk travels, and how much scrolling that takes (1:1 with the scroll by default) */
       var box = sceneBox();
       var desk = { l: geom.scene.x + geom.scene.w * box.l, r: geom.scene.x + geom.scene.w * box.r, t: geom.scene.y + geom.scene.h * box.t, b: geom.bottom };
       var T = Math.max(1, desk.b - geom.navH + gap);
       var scrollLen = T / P_OFF * clamp(num(opts.scroll_length, 1), 0.3, 4);
       stage.style.height = Math.round(window.innerHeight + scrollLen) + "px";
-      var g1 = Math.min(0.97, P_OFF + 0.08);
-      plan = { T: T, g0: 0.3, g1: g1, pad: gap * 0.55, navH: geom.navH, obst: [geom.mon].concat(geom.clear || []) };
 
       /* pair every project with a grid cell, closest pairs first, so nothing travels further than it has to */
       var grid = gridLayout(geom, res.tiles.map(function (e) { return e.it.aspect; }), gap, crop);
       var target = [];
       if (grid) {
-        var pairs = [];
-        res.tiles.forEach(function (e, i) {
+        var pick = bestPairs(res.tiles.map(function (e) {
           var cx = e.r.x + e.r.w / 2, cy = e.r.y + e.r.h / 2;
-          grid.cells.forEach(function (c, j) { pairs.push([Math.hypot(cx - c.cx, cy - c.cy), i, j]); });
-        });
-        pairs.sort(function (a, b) { return a[0] - b[0]; });
-        var usedT = {}, usedC = {};
-        pairs.forEach(function (pr) {
-          if (usedT[pr[1]] || usedC[pr[2]]) return;
-          usedT[pr[1]] = usedC[pr[2]] = true;
-          target[pr[1]] = grid.cells[pr[2]];
-        });
+          return grid.cells.map(function (c) { return Math.hypot(cx - c.cx, cy - c.cy); });
+        }));
+        res.tiles.forEach(function (e, i) { target[i] = grid.cells[pick[i]]; });
       }
 
+      var g1 = P_OFF + 0.08;  /* growth done, just after the desk has gone */
       tiles = res.tiles.map(function (e, i) {
         var li = lis[i];
         if (animate) li.style.setProperty("--delay", Math.round(i * stagger) + "ms");
@@ -492,88 +516,163 @@
           B = { cx: target[i].cx, cy: target[i].cy, w: bw, h: bw / asp };
         }
         return {
-          el: li, A: A, B: B, s: g1 * (0.03 + 0.32 * rng()),
-          x: A.cx, y: A.cy, w: A.w, h: A.h, vx: 0, vy: 0, dw: A.w, dh: A.h,
+          el: li, A: A, B: B, s: P_SET * (0.04 + 0.3 * rng()),
+          under: A.cy - A.h / 2 >= desk.b,
+          side: A.cy > desk.t && A.cy < desk.b,
+          path: null, x: A.cx, y: A.cy, w: A.w, h: A.h, dw: 0, dh: 0,
           p1: rng() * 6.283, p2: rng() * 6.283, s1: 0.00045 + rng() * 0.00035, s2: 0.0004 + rng() * 0.0003,
           amp: 0.6 + rng() * 0.6, rot: (rng() - 0.5), ox: 0, oy: 0
         };
       });
 
-      /* growth starts when the first project beside the desk has dropped below the rising desk */
-      var g0 = null;
-      var side = tiles.filter(function (t) { return t.A.cy + t.A.h / 2 > desk.t && t.A.cy - t.A.h / 2 < desk.b; });
-      for (var p = 0; p <= P_OFF && g0 === null; p += 0.004) {
-        var deskBottom = desk.b - T * (p / P_OFF);
-        for (var k = 0; k < side.length; k++) {
-          var t = side[k], m = migration(t, p);
-          var cx = lerp(t.A.cx, t.B.cx, m), cy = lerp(t.A.cy, t.B.cy, m);
-          if (cy - t.A.h / 2 >= deskBottom && cx + t.A.w / 2 > desk.l && cx - t.A.w / 2 < desk.r) { g0 = p; break; }
+      plan = { T: T, g1: g1, desk: desk };
+      bake(desk, T, g1, gap * 0.55, [geom.mon].concat(geom.clear || []), geom.navH, geom.W, geom.H);
+      if (shownP === null) shownP = progress();
+      show(shownP, 0, 0);
+      return res;
+    }
+
+    /* work out every project's path through the whole scroll, once */
+    function bake(desk, T, g1, pad, obstacles, navH, W, H) {
+      var n = tiles.length, K = STEPS;
+      var st = tiles.map(function (t) { return { x: t.A.cx, y: t.A.cy, w: t.A.w, h: t.A.h, vx: 0, vy: 0, gs: -1, dir: [], esc: [] }; });
+      var rec = tiles.map(function () { return new Float32Array((K + 1) * 4); });
+      var gStart = -1, reassigned = false;
+      for (var k = 0; k <= K; k++) {
+        var p = k / K;
+        /* once the desk has gone, re-pair projects with the nearest free cells from where they actually are */
+        if (!reassigned && p >= P_OFF) {
+          reassigned = true;
+          var cells = tiles.map(function (t) { return { cx: t.B.cx, cy: t.B.cy }; });
+          var pick2 = bestPairs(st.map(function (s2) { return cells.map(function (c2) { return Math.hypot(s2.x - c2.cx, s2.y - c2.cy); }); }));
+          tiles.forEach(function (t2, i2) { t2.B = { cx: cells[pick2[i2]].cx, cy: cells[pick2[i2]].cy, w: t2.B.w, h: t2.B.h }; });
+        }
+        var dy = -T * Math.min(p / P_OFF, 1);
+        var deskBottom = desk.b + dy;
+        var obst = obstacles.map(function (o) { return { l: o.x - pad, r: o.x + o.w + pad, t: o.y + dy - pad, b: o.y + o.h + dy + pad }; });
+        var i, s, t;
+        /* move towards the guided target, steering it out of the rising desk's way */
+        for (i = 0; i < n; i++) {
+          t = tiles[i]; s = st[i];
+          var m = easeIO(clamp((p - t.s) / (P_SET - t.s), 0, 1));
+          var tx = lerp(t.A.cx, t.B.cx, m), ty = lerp(t.A.cy, t.B.cy, m);
+          for (var q0 = 0; q0 < obst.length; q0++) {
+            var o0 = obst[q0];
+            /* free once that part of the desk is hidden, or once the project is below it */
+            if (o0.b <= navH || s.y - s.h / 2 >= o0.b - 1) { s.esc[q0] = 0; continue; }
+            var range = s.h * 1.3 + 80;
+            if (o0.t - (s.y + s.h / 2) > range) continue;
+            if (tx <= o0.l - s.w / 2 || tx >= o0.r + s.w / 2) continue;
+            if (!s.esc[q0]) {
+              /* go round the nearer side, as long as at least half the image stays on screen */
+              var okL = o0.l - s.w * 0.5 >= 0, okR = o0.r + s.w * 0.5 <= W;
+              s.esc[q0] = okL && (!okR || s.x - o0.l <= o0.r - s.x) ? 1 : okR ? 2 : -1;
+            }
+            if (s.esc[q0] === 1) tx = o0.l - s.w / 2 - 1;
+            else if (s.esc[q0] === 2) tx = o0.r + s.w / 2 + 1;
+            else ty = Math.min(ty, o0.t - s.h / 2); /* no room either side: it rides up on top */
+          }
+          s.vx = s.vx * 0.72 + (tx - s.x) * 0.05;
+          s.vy = s.vy * 0.72 + (ty - s.y) * 0.05;
+          var sp = Math.hypot(s.vx, s.vy), VMAX = p > P_OFF ? 13 : 9;
+          if (sp > VMAX) { s.vx *= VMAX / sp; s.vy *= VMAX / sp; }
+          s.x += s.vx; s.y += s.vy;
+          var below = s.y - s.h / 2 >= deskBottom - 1 && s.x + s.w / 2 > desk.l && s.x - s.w / 2 < desk.r;
+          if (gStart < 0 && t.side && below) gStart = p;
+        }
+        if (gStart < 0 && p >= P_OFF * 0.6) gStart = p;
+        /* growth: projects under the desk start first, the rest as they drop below it, all finish at g1 */
+        for (i = 0; i < n; i++) {
+          t = tiles[i]; s = st[i];
+          if (s.gs < 0 && gStart >= 0) {
+            var isBelow = s.y - s.h / 2 >= deskBottom - 1 || p >= P_OFF;
+            if (t.under || isBelow) s.gs = p;
+          }
+          var gr = s.gs < 0 ? 0 : easeIO(clamp((p - s.gs) / Math.max(g1 - s.gs, 0.05), 0, 1));
+          s.w += (lerp(t.A.w, t.B.w, gr) - s.w) * 0.3;
+          s.h += (lerp(t.A.h, t.B.h, gr) - s.h) * 0.3;
+        }
+        /* settle overlaps: neighbours make room, the desk is solid (each project keeps the side it chose) */
+        var sepW = 0.6 * (1 - smooth(P_OFF - 0.06, P_OFF + 0.1, p)); /* neighbours give way softly, and stop pushing before the final settle */
+        for (var it = 0; it < 10; it++) {
+          var moved = false;
+          for (i = 0; i < n; i++) {
+            var a = st[i];
+            for (var j = i + 1; j < n; j++) {
+              var b = st[j];
+              var ox = (a.w + b.w) / 2 + pad - Math.abs(a.x - b.x);
+              var oy = (a.h + b.h) / 2 + pad - Math.abs(a.y - b.y);
+              if (ox <= 0 || oy <= 0) continue;
+              moved = true;
+              if (ox < oy) { var sx = (a.x < b.x ? -1 : 1) * ox * 0.5 * sepW; a.x += sx; b.x -= sx; }
+              else { var sy = (a.y < b.y ? -1 : 1) * oy * 0.5 * sepW; a.y += sy; b.y -= sy; }
+            }
+          }
+          for (i = 0; i < n; i++) {
+            s = st[i];
+            for (var q = 0; q < obst.length; q++) {
+              var o = obst[q];
+              if (o.b <= navH) { s.dir[q] = 0; continue; }
+              var pl = s.x + s.w / 2 - o.l, pr = o.r - (s.x - s.w / 2), pu = s.y + s.h / 2 - o.t, pd = o.b - (s.y - s.h / 2);
+              if (pl <= 0 || pr <= 0 || pu <= 0 || pd <= 0) { s.dir[q] = 0; continue; }
+              moved = true;
+              if (!s.dir[q]) {
+                var upCost = s.y - s.h / 2 - pu < navH + pad ? pu * 6 : pu * 1.6;
+                var lCost = s.x - s.w / 2 - pl < 0 ? pl * 4 : pl;
+                var rCost = s.x + s.w / 2 + pr > W ? pr * 4 : pr;
+                var mn = Math.min(lCost, rCost, upCost, pd);
+                s.dir[q] = mn === pd ? 4 : mn === lCost ? 1 : mn === rCost ? 2 : 3;
+              }
+              if (s.dir[q] === 1) { s.x -= pl; if (s.vx > 0) s.vx = 0; }
+              else if (s.dir[q] === 2) { s.x += pr; if (s.vx < 0) s.vx = 0; }
+              else if (s.dir[q] === 3) { s.y -= pu; if (s.vy > 0) s.vy = 0; }
+              else { s.y += pd; if (s.vy < 0) s.vy = 0; }
+            }
+          }
+          /* never more than half off the sides or the bottom of the screen */
+          for (i = 0; i < n; i++) {
+            s = st[i];
+            if (s.x < 0) { s.x = 0; if (s.vx < 0) s.vx = 0; }
+            if (s.x > W) { s.x = W; if (s.vx > 0) s.vx = 0; }
+            if (s.y > H) { s.y = H; if (s.vy > 0) s.vy = 0; }
+          }
+          if (!moved) break;
+        }
+        for (i = 0; i < n; i++) {
+          s = st[i];
+          rec[i][k * 4] = s.x; rec[i][k * 4 + 1] = s.y; rec[i][k * 4 + 2] = s.w; rec[i][k * 4 + 3] = s.h;
         }
       }
-      plan.g0 = clamp(g0 === null ? P_OFF * 0.4 : g0, 0.1, g1 - 0.25);
-
-      /* start in the right place for wherever the page is scrolled to */
-      settle();
-      return res;
+      /* smooth each path, and make sure it lands exactly on its grid cell at the end */
+      var R = 4;
+      tiles.forEach(function (t, i) {
+        var src = rec[i], out = new Float32Array(src.length);
+        for (var k2 = 0; k2 <= K; k2++) {
+          var lo = Math.max(0, k2 - R), hi = Math.min(K, k2 + R), cnt = hi - lo + 1;
+          for (var c = 0; c < 4; c++) {
+            var sum = 0;
+            for (var q2 = lo; q2 <= hi; q2++) sum += src[q2 * 4 + c];
+            out[k2 * 4 + c] = sum / cnt;
+          }
+          var pk = k2 / K;
+          var toA = 1 - smooth(0, 0.03, pk), toB = smooth(P_SET + 0.02, 0.99, pk);
+          var ends = [[t.A.cx, t.B.cx], [t.A.cy, t.B.cy], [t.A.w, t.B.w], [t.A.h, t.B.h]];
+          for (c = 0; c < 4; c++) {
+            var v = out[k2 * 4 + c];
+            v = lerp(v, ends[c][0], toA);
+            v = lerp(v, ends[c][1], toB);
+            out[k2 * 4 + c] = v;
+          }
+        }
+        t.path = out;
+        t.raw = rec[i];
+      });
+      if (/[?&]debug\b/.test(location.search)) window.__collage = { tiles: tiles, plan: plan, geom: geom, K: K };
     }
 
     function progress() {
       var max = stage.offsetHeight - window.innerHeight;
       return max > 0 ? clamp(-stage.getBoundingClientRect().top / max, 0, 1) : 0;
-    }
-
-    /* one simulation step. snap = jump straight to the targets (used for reduced motion and resizes) */
-    function simulate(p, dt, snap) {
-      var dy = -plan.T * clamp(p / P_OFF, 0, 1);
-      sceneEl.style.transform = dy ? "translate3d(0," + dy.toFixed(2) + "px,0)" : "";
-      var grow = smooth(plan.g0, plan.g1, p);
-      var pad = plan.pad;
-      var obst = plan.obst.map(function (o) { return { l: o.x - pad, r: o.x + o.w + pad, t: o.y + dy - pad, b: o.y + o.h + dy + pad }; })
-        .filter(function (o) { return o.b > plan.navH + pad; }); /* once a part is hidden behind the navbar it stops pushing */
-      var kSpring = 0.075, damp = Math.pow(0.8, dt), sizeK = 1 - Math.pow(0.82, dt);
-      var i, t;
-      for (i = 0; i < tiles.length; i++) {
-        t = tiles[i];
-        var m = migration(t, p);
-        var tx = lerp(t.A.cx, t.B.cx, m), ty = lerp(t.A.cy, t.B.cy, m);
-        var tw = lerp(t.A.w, t.B.w, grow), th = lerp(t.A.h, t.B.h, grow);
-        if (snap) { t.x = tx; t.y = ty; t.w = tw; t.h = th; t.vx = t.vy = 0; continue; }
-        t.vx = (t.vx + (tx - t.x) * kSpring * dt) * damp;
-        t.vy = (t.vy + (ty - t.y) * kSpring * dt) * damp;
-        t.x += t.vx * dt; t.y += t.vy * dt;
-        t.w += (tw - t.w) * sizeK; t.h += (th - t.h) * sizeK;
-      }
-      var passes = snap ? 8 : 2;
-      for (var pass = 0; pass < passes; pass++) {
-        /* neighbours make room for each other */
-        for (i = 0; i < tiles.length; i++) {
-          var a = tiles[i];
-          for (var j = i + 1; j < tiles.length; j++) {
-            var b = tiles[j];
-            var ox = (a.w + b.w) / 2 + pad - Math.abs(a.x - b.x);
-            var oy = (a.h + b.h) / 2 + pad - Math.abs(a.y - b.y);
-            if (ox <= 0 || oy <= 0) continue;
-            if (ox < oy) { var sx = (a.x < b.x ? -1 : 1) * ox * 0.18; a.x += sx; b.x -= sx; }
-            else { var sy = (a.y < b.y ? -1 : 1) * oy * 0.18; a.y += sy; b.y -= sy; }
-          }
-        }
-        /* the desk is solid: anything it touches is pushed out the shortest way round its shape */
-        for (i = 0; i < tiles.length; i++) {
-          t = tiles[i];
-          for (var k = 0; k < obst.length; k++) {
-            var o = obst[k];
-            var pl = t.x + t.w / 2 - o.l, pr = o.r - (t.x - t.w / 2), pu = t.y + t.h / 2 - o.t, pd = o.b - (t.y - t.h / 2);
-            if (pl <= 0 || pr <= 0 || pu <= 0 || pd <= 0) continue;
-            /* sliding sideways round the desk is preferred to riding up on top of it */
-            var mn = Math.min(pl, pr, pu * 1.6, pd);
-            if (mn === pu * 1.6) { t.y -= pu; if (t.vy > 0) t.vy = 0; }
-            else if (mn === pd) { t.y += pd; if (t.vy < 0) t.vy = 0; }
-            else if (mn === pl) { t.x -= pl; if (t.vx > 0) t.vx = 0; }
-            else { t.x += pr; if (t.vx < 0) t.vx = 0; }
-          }
-        }
-      }
-      return grow;
     }
 
     function draw(t, fx, fy, rot) {
@@ -585,11 +684,42 @@
       t.el.style.transform = "translate3d(" + (t.x - t.w / 2 + fx).toFixed(2) + "px," + (t.y - t.h / 2 + fy).toFixed(2) + "px,0)" + (rot ? " rotate(" + rot.toFixed(3) + "deg)" : "");
     }
 
-    function settle() {
+    /* put the desk and every project where its path says for this point in the scroll */
+    function show(p, now, dtMouse) {
       if (!plan) return;
-      simulate(progress(), 1, true);
-      for (var i = 0; i < tiles.length; i++) draw(tiles[i], 0, 0, 0);
+      var dy = -plan.T * clamp(p / P_OFF, 0, 1);
+      sceneEl.style.transform = dy ? "translate3d(0," + dy.toFixed(2) + "px,0)" : "";
+      var f = p * STEPS, k0 = Math.min(Math.floor(f), STEPS - 1), u = f - k0;
+      var fl = reduceMotion ? 0 : num(opts.float, 1), cu = reduceMotion ? 0 : num(opts.cursor, 1);
+      var rect = pin.getBoundingClientRect();
+      var mx = mouse.x - rect.left, my = mouse.y - rect.top;
+      var reach = geom ? Math.max(200, geom.mon.w * 0.55) : 300;
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i], P = t.path, a = k0 * 4, b = a + 4;
+        t.x = lerp(P[a], P[b], u); t.y = lerp(P[a + 1], P[b + 1], u);
+        t.w = lerp(P[a + 2], P[b + 2], u); t.h = lerp(P[a + 3], P[b + 3], u);
+        /* once a project starts moving it stiffens: float and cursor fade out so it holds its path */
+        var free = 1 - smooth(0, 28, Math.hypot(t.x - t.A.cx, t.y - t.A.cy));
+        var fx = 0, fy = 0, rot = 0, tx = 0, ty = 0;
+        if (now && free > 0) {
+          fx = Math.sin(now * t.s1 + t.p1) * 5 * fl * t.amp * free;
+          fy = Math.cos(now * t.s2 + t.p2) * 6 * fl * t.amp * free;
+          rot = Math.sin(now * t.s2 * 0.8 + t.p1) * 0.35 * fl * t.rot * free;
+          if (mouse.active && cu > 0) {
+            var dx = t.x - mx, dyy = t.y - my;
+            var dist = Math.max(Math.hypot(dx, dyy), 1);
+            var push = cu * 18 * Math.exp(-(dist * dist) / (2 * reach * reach));
+            tx = (dx / dist * push - (mx - rect.width / 2) / rect.width * cu * 10) * free;
+            ty = (dyy / dist * push - (my - rect.height / 2) / rect.height * cu * 8) * free;
+          }
+        }
+        if (dtMouse) { t.ox += (tx - t.ox) * (1 - Math.pow(0.93, dtMouse)); t.oy += (ty - t.oy) * (1 - Math.pow(0.93, dtMouse)); }
+        else { t.ox *= free; t.oy *= free; }
+        draw(t, fx + t.ox, fy + t.oy, rot);
+      }
     }
+
+    function settle() { shownP = progress(); show(shownP, 0, 0); }
 
     function reveal() {
       revealed = true;
@@ -616,6 +746,7 @@
       render(true);
       reveal();
       startLoop();
+      showBubble();
       if (/[?&]tune\b/.test(location.search)) buildTuner();
     });
 
@@ -642,7 +773,7 @@
       }, { passive: true });
     }
 
-    /* ---------- simulation, float and cursor ---------- */
+    /* ---------- the frame loop: eases the shown scroll position towards the real one ---------- */
     var mouse = { x: 0, y: 0, active: false };
     window.addEventListener("pointermove", function (e) {
       if (e.pointerType !== "mouse") return;
@@ -663,32 +794,33 @@
 
     function frame(now) {
       if (document.hidden) { running = false; return; }
-      if (!plan) { requestAnimationFrame(frame); return; }
       var dt = lastNow ? clamp((now - lastNow) / 16.667, 0.25, 3) : 1;
       lastNow = now;
-      var grow = simulate(progress(), dt, false);
-      var fl = num(opts.float, 1) * (1 - 0.65 * grow), cu = num(opts.cursor, 1);
-      var rect = pin.getBoundingClientRect();
-      var mx = mouse.x - rect.left, my = mouse.y - rect.top;
-      var reach = geom ? Math.max(200, geom.mon.w * 0.55) : 300;
-      for (var i = 0; i < tiles.length; i++) {
-        var t = tiles[i];
-        var fx = Math.sin(now * t.s1 + t.p1) * 5 * fl * t.amp;
-        var fy = Math.cos(now * t.s2 + t.p2) * 6 * fl * t.amp;
-        var tx = 0, ty = 0;
-        if (mouse.active && cu > 0) {
-          var dx = t.x - mx, dy = t.y - my;
-          var dist = Math.max(Math.hypot(dx, dy), 1);
-          var f = Math.exp(-(dist * dist) / (2 * reach * reach));
-          var push = cu * 18 * f;
-          tx = dx / dist * push - (mx - rect.width / 2) / rect.width * cu * 10;
-          ty = dy / dist * push - (my - rect.height / 2) / rect.height * cu * 8;
-        }
-        t.ox += (tx - t.ox) * 0.07;
-        t.oy += (ty - t.oy) * 0.07;
-        draw(t, fx + t.ox, fy + t.oy, Math.sin(now * t.s2 * 0.8 + t.p1) * 0.35 * fl * t.rot);
+      if (plan) {
+        var p = progress();
+        if (shownP === null) shownP = p;
+        shownP += (p - shownP) * (1 - Math.pow(0.86, dt));
+        if (Math.abs(p - shownP) < 0.0004) shownP = p;
+        show(shownP, now, dt);
       }
       requestAnimationFrame(frame);
+    }
+
+    /* ---------- "let's work together" message bubble ---------- */
+    function showBubble() {
+      var text = site.cta_text || "";
+      var href = site.cta_link || (site.email ? "mailto:" + site.email : "");
+      if (!text || !href) return;
+      var el = document.createElement("a");
+      el.className = "bubble";
+      el.href = href;
+      if (!/^mailto:/.test(href)) { el.target = "_blank"; el.rel = "noopener"; }
+      el.innerHTML = '<span class="bubble-body"><span class="bubble-text">' + esc(text) + '</span>' +
+        '<svg class="bubble-tail" viewBox="0 0 30 22" aria-hidden="true"><path d="M21 0C21 9 17 16 0 22C10 22.5 20 20.5 27 15.5L30 0Z"/></svg>' +
+        '<span class="bubble-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></span></span>';
+      document.body.appendChild(el);
+      var wait = reduceMotion ? 0 : num(scene.duration_ms, 2500) + 1400;
+      setTimeout(function () { el.classList.add("is-in"); }, wait);
     }
 
     /* ---------- tuning panel (?tune) ---------- */

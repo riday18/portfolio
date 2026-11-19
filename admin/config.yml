@@ -98,6 +98,8 @@ collections:
           - { label: Name, name: name, widget: string }
           - { label: Intro text, name: intro, widget: text }
           - { label: Profile photo, name: photo, widget: image, required: false }
+          - { label: Message bubble text, name: cta_text, widget: string, required: false, hint: "The white message box on the right. Leave empty to hide it." }
+          - { label: Message bubble link, name: cta_link, widget: string, required: false, hint: "Where clicking it goes. Leave empty to open an email to you." }
           - { label: About paragraph, name: about, widget: text }
           - { label: Operations intro, name: operations_intro, widget: text }
           - { label: Email, name: email, widget: string }

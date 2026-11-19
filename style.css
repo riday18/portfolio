@@ -335,6 +335,68 @@ body.desk-menu-visible .nav-links { opacity: 0; pointer-events: none; }
   -webkit-box-orient: vertical;
 }
 
+/* ---------- "let's work together" message bubble ---------- */
+.bubble {
+  position: fixed;
+  z-index: 30;
+  right: clamp(16px, 7vw, 140px);
+  bottom: clamp(24px, 13vh, 150px);
+  display: block;
+  color: #0b0b0b;
+  text-decoration: none;
+  opacity: 0;
+  transform: scale(0.6);
+  transform-origin: 0% 100%;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bubble.is-in { opacity: 1; transform: none; pointer-events: auto; }
+.bubble-body {
+  position: relative;
+  display: block;
+  max-width: clamp(220px, 17vw, 330px);
+  padding: 0.85em 1.35em;
+  border-radius: 1.45em;
+  background: #fbfbfb;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  font-weight: 600;
+  font-size: clamp(15px, 1.2vw, 22px);
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  transform-origin: 30% 70%;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bubble-text { position: relative; z-index: 1; }
+.bubble-tail {
+  position: absolute;
+  left: -0.42em;
+  bottom: 0;
+  width: 1.35em;
+  height: 1em;
+  fill: #fbfbfb;
+}
+.bubble-btn {
+  position: absolute;
+  right: -0.55em;
+  bottom: -0.55em;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.75em;
+  height: 1.75em;
+  border-radius: 0.45em;
+  background: #ececec;
+  border: 1px solid #d4d4d4;
+  color: #1a1a1a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transform: scale(0);
+  transition: transform 0.35s cubic-bezier(0.34, 1.7, 0.64, 1);
+}
+.bubble-btn svg { width: 58%; height: 58%; }
+.bubble:hover .bubble-body, .bubble:focus-visible .bubble-body { transform: scale(1.045); }
+.bubble:hover .bubble-btn, .bubble:focus-visible .bubble-btn { transform: scale(1); }
+@media (hover: none) { .bubble-btn { transform: scale(1); } }
+
 /* ---------- project viewer ---------- */
 .viewer {
   width: min(1100px, 100%);
@@ -418,4 +480,5 @@ body.desk-menu-visible .nav-links { opacity: 0; pointer-events: none; }
   .scene.is-placeholder.is-in .scene-art, .viewer[open] { animation: none; }
   .scene-px { transition: none; }
   .tile-a, .tile-glow { transition: none; }
+  .bubble, .bubble-body, .bubble-btn { transition: none; }
 }
