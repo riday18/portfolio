@@ -114,6 +114,23 @@
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav-links a, .screen-nav a"));
     navLinks.forEach(function (a) { a.setAttribute("aria-current", a.getAttribute("data-section") === "work" ? "true" : "false"); });
 
+    /* "let's work together" message bubble: built now so the grid can make room for it,
+       then positioned by the scroll animation (see showBubble) */
+    (function buildBubble() {
+      var text = site.cta_text || "";
+      var href = site.cta_link || (site.email ? "mailto:" + site.email : "");
+      if (!text || !href) return;
+      var el = document.createElement("a");
+      el.className = "bubble";
+      el.id = "bubble";
+      el.href = href;
+      if (!/^mailto:/.test(href)) { el.target = "_blank"; el.rel = "noopener"; }
+      el.innerHTML = '<span class="bubble-body"><span class="bubble-text">' + esc(text) + '</span>' +
+        '<svg class="bubble-tail" viewBox="0 0 30 22" aria-hidden="true"><path d="M21 0C21 9 17 16 0 22C10 22.5 20 20.5 27 15.5L30 0Z"/></svg>' +
+        '<span class="bubble-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></span></span>';
+      $("#stage-pin").appendChild(el);
+    })();
+
     /* ================= stage: scene + collage ================= */
     var stage = $("#work");
     var pin = $("#stage-pin");
@@ -439,6 +456,19 @@
       return out;
     }
 
+    /* does the straight line from (x0,y0) to (x1,y1) pass through the box l,t,r,b? */
+    function segHitsBox(x0, y0, x1, y1, l, t, r, b) {
+      var u0 = 0, u1 = 1, dx = x1 - x0, dy = y1 - y0;
+      var ps = [-dx, dx, -dy, dy], qs = [x0 - l, r - x0, y0 - t, b - y0];
+      for (var i = 0; i < 4; i++) {
+        if (ps[i] === 0) { if (qs[i] < 0) return false; continue; }
+        var u = qs[i] / ps[i];
+        if (ps[i] < 0) { if (u > u1) return false; if (u > u0) u0 = u; }
+        else { if (u < u0) return false; if (u < u1) u1 = u; }
+      }
+      return u0 < u1;
+    }
+
     /* the most even grid for this many images on this screen: tries every column count and keeps
        the one where the images (fitted into their cells) cover the most of the screen */
     function gridLayout(g, aspects, gap, crop) {
@@ -463,9 +493,9 @@
         var row = Math.floor(i / best.c), col = i % best.c;
         var inRow = row === best.r - 1 ? n - row * best.c : best.c;
         var off = (best.c - inRow) * (best.cw + gap) / 2;
-        cells.push({ cx: x0 + off + col * (best.cw + gap) + best.cw / 2, cy: y0 + row * (best.ch + gap) + best.ch / 2 });
+        cells.push({ cx: x0 + off + col * (best.cw + gap) + best.cw / 2, cy: y0 + row * (best.ch + gap) + best.ch / 2, row: row, col: col });
       }
-      return { cells: cells, cw: best.cw, ch: best.ch };
+      return { cells: cells, cw: best.cw, ch: best.ch, c: best.c, r: best.r };
     }
 
     function render(animate) {
@@ -487,7 +517,31 @@
       stage.style.height = Math.round(window.innerHeight + scrollLen) + "px";
 
       /* pair every project with a grid cell, closest pairs first, so nothing travels further than it has to */
-      var grid = gridLayout(geom, res.tiles.map(function (e) { return e.it.aspect; }), gap, crop);
+      var bubbleEl = $("#bubble");
+      var bw = bubbleEl ? bubbleEl.offsetWidth : 0, bh = bubbleEl ? bubbleEl.offsetHeight : 0;
+      var aspects = res.tiles.map(function (e) { return e.it.aspect; });
+      /* the bubble gets the right-hand end of the second row (first row if there's only one): as many
+         cells as it needs to stay full size, so on a phone it can take the whole row */
+      var k = bw && bh ? 1 : 0, grid = null, bubbleCell = null;
+      for (var pass = 0; pass < 3; pass++) {
+        var extra = [];
+        for (var e2 = 0; e2 < k; e2++) extra.push(bw / bh);
+        grid = gridLayout(geom, aspects.concat(extra), gap, crop);
+        if (!grid || !k) break;
+        var need = Math.min(grid.c, Math.max(1, Math.ceil(bw / (grid.cw + gap * 0.5))));
+        if (need === k) break;
+        k = need;
+      }
+      if (grid && k) {
+        var brow = Math.min(1, grid.r - 1);
+        var inRow = grid.cells.filter(function (c) { return c.row === brow; }).sort(function (a2, b2) { return b2.col - a2.col; }).slice(0, k);
+        grid.cells = grid.cells.filter(function (c) { return inRow.indexOf(c) < 0; });
+        bubbleCell = {
+          cx: inRow.reduce(function (m2, c) { return m2 + c.cx; }, 0) / inRow.length,
+          cy: inRow[0].cy,
+          w: inRow.length * grid.cw + (inRow.length - 1) * gap
+        };
+      }
       var target = [];
       if (grid) {
         var pick = bestPairs(res.tiles.map(function (e) {
@@ -525,7 +579,11 @@
         };
       });
 
-      plan = { T: T, g1: g1, desk: desk };
+      plan = { T: T, g1: g1, desk: desk, bubble: null };
+      if (bubbleCell) {
+        var bs = Math.min(1, bubbleCell.w * 0.96 / bw, grid.ch * 0.96 / bh);
+        plan.bubble = { el: bubbleEl, cx: bubbleCell.cx, cy: bubbleCell.cy, w: bw * bs, h: bh * bs, s: bs, rise: grid.ch * 0.5, shown: -1 };
+      }
       bake(desk, T, g1, gap * 0.55, [geom.mon].concat(geom.clear || []), geom.navH, geom.W, geom.H);
       if (shownP === null) shownP = progress();
       show(shownP, 0, 0);
@@ -537,14 +595,21 @@
       var n = tiles.length, K = STEPS;
       var st = tiles.map(function (t) { return { x: t.A.cx, y: t.A.cy, w: t.A.w, h: t.A.h, vx: 0, vy: 0, gs: -1, dir: [], esc: [] }; });
       var rec = tiles.map(function () { return new Float32Array((K + 1) * 4); });
-      var gStart = -1, reassigned = false;
+      var gStart = -1, nextPair = Math.ceil(P_OFF * K);
       for (var k = 0; k <= K; k++) {
         var p = k / K;
-        /* once the desk has gone, re-pair projects with the nearest free cells from where they actually are */
-        if (!reassigned && p >= P_OFF) {
-          reassigned = true;
+        /* once the desk has gone, keep re-pairing projects with cells from where they actually are,
+           every few steps until they settle, so no two of them swap places */
+        if (k === nextPair && p <= P_SET - 0.03) {
+          nextPair += 3;
           var cells = tiles.map(function (t) { return { cx: t.B.cx, cy: t.B.cy }; });
-          var pick2 = bestPairs(st.map(function (s2) { return cells.map(function (c2) { return Math.hypot(s2.x - c2.cx, s2.y - c2.cy); }); }));
+          /* a route straight through the bubble's spot counts as much longer, so nobody has to pass through it */
+          var bcell = plan.bubble;
+          var pick2 = bestPairs(st.map(function (s2) { return cells.map(function (c2) {
+            var d2 = Math.hypot(s2.x - c2.cx, s2.y - c2.cy);
+            if (bcell && segHitsBox(s2.x, s2.y, c2.cx, c2.cy, bcell.cx - bcell.w / 2 - s2.w / 2, bcell.cy - bcell.h / 2 - s2.h / 2, bcell.cx + bcell.w / 2 + s2.w / 2, bcell.cy + bcell.h / 2 + s2.h / 2)) d2 += 4000;
+            return d2;
+          }); }));
           tiles.forEach(function (t2, i2) { t2.B = { cx: cells[pick2[i2]].cx, cy: cells[pick2[i2]].cy, w: t2.B.w, h: t2.B.h }; });
         }
         var dy = -T * Math.min(p / P_OFF, 1);
@@ -558,18 +623,19 @@
           var tx = lerp(t.A.cx, t.B.cx, m), ty = lerp(t.A.cy, t.B.cy, m);
           for (var q0 = 0; q0 < obst.length; q0++) {
             var o0 = obst[q0];
-            /* free once that part of the desk is hidden, or once the project is below it */
+            /* free once that part is hidden behind the navbar, or once the project is below it */
             if (o0.b <= navH || s.y - s.h / 2 >= o0.b - 1) { s.esc[q0] = 0; continue; }
-            var range = s.h * 1.3 + 80;
-            if (o0.t - (s.y + s.h / 2) > range) continue;
-            if (tx <= o0.l - s.w / 2 || tx >= o0.r + s.w / 2) continue;
             if (!s.esc[q0]) {
+              /* not committed yet: only react when it is getting close and in the way */
+              if (o0.t - (s.y + s.h / 2) > s.h * 1.3 + 80) continue;
+              if (tx <= o0.l - s.w / 2 || tx >= o0.r + s.w / 2) continue;
               /* go round the nearer side, as long as at least half the image stays on screen */
               var okL = o0.l - s.w * 0.5 >= 0, okR = o0.r + s.w * 0.5 <= W;
               s.esc[q0] = okL && (!okR || s.x - o0.l <= o0.r - s.x) ? 1 : okR ? 2 : -1;
             }
-            if (s.esc[q0] === 1) tx = o0.l - s.w / 2 - 1;
-            else if (s.esc[q0] === 2) tx = o0.r + s.w / 2 + 1;
+            /* committed: hold that side until the desk has passed, no changing its mind */
+            if (s.esc[q0] === 1) tx = Math.min(tx, o0.l - s.w / 2 - 1);
+            else if (s.esc[q0] === 2) tx = Math.max(tx, o0.r + s.w / 2 + 1);
             else ty = Math.min(ty, o0.t - s.h / 2); /* no room either side: it rides up on top */
           }
           s.vx = s.vx * 0.72 + (tx - s.x) * 0.05;
@@ -644,9 +710,21 @@
         }
       }
       /* smooth each path, and make sure it lands exactly on its grid cell at the end */
-      var R = 4;
+      var R = 5;
+      function boxBlur(src) {
+        var out = new Float32Array(src.length);
+        for (var k3 = 0; k3 <= K; k3++) {
+          var lo = Math.max(0, k3 - R), hi = Math.min(K, k3 + R), cnt = hi - lo + 1;
+          for (var c3 = 0; c3 < 4; c3++) {
+            var sum = 0;
+            for (var q3 = lo; q3 <= hi; q3++) sum += src[q3 * 4 + c3];
+            out[k3 * 4 + c3] = sum / cnt;
+          }
+        }
+        return out;
+      }
       tiles.forEach(function (t, i) {
-        var src = rec[i], out = new Float32Array(src.length);
+        var src = boxBlur(boxBlur(rec[i])), out = new Float32Array(src.length);
         for (var k2 = 0; k2 <= K; k2++) {
           var lo = Math.max(0, k2 - R), hi = Math.min(K, k2 + R), cnt = hi - lo + 1;
           for (var c = 0; c < 4; c++) {
@@ -668,6 +746,26 @@
         t.raw = rec[i];
       });
       if (/[?&]debug\b/.test(location.search)) window.__collage = { tiles: tiles, plan: plan, geom: geom, K: K };
+    }
+
+    /* where the bubble is at scroll position p: it pops in as the desk leaves and rises into its cell */
+    function backOut(t) { var c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+    function bubbleAt(p) {
+      var B = plan.bubble;
+      var a = smooth(P_OFF - 0.02, P_OFF + 0.05, p);
+      var m = easeIO(clamp((p - (P_OFF - 0.02)) / (P_SET - P_OFF + 0.02), 0, 1));
+      return { a: a, x: B.cx, y: B.cy + B.rise * (1 - m), w: B.w, h: B.h };
+    }
+    function showBubble(p, now) {
+      var B = plan && plan.bubble;
+      if (!B) return;
+      var st = bubbleAt(p);
+      var fl = reduceMotion || !now ? 0 : num(opts.float, 1) * (1 - smooth(0.95, 0.995, p)); /* still once the scroll is done */
+      var fx = Math.sin(now * 0.0007 + 1.3) * 4 * fl, fy = Math.cos(now * 0.0006) * 5 * fl;
+      var sc = B.s * (st.a > 0 ? 0.55 + 0.45 * backOut(st.a) : 0.55);
+      B.el.style.opacity = st.a.toFixed(3);
+      B.el.style.transform = "translate3d(" + (st.x - B.w / B.s / 2 + fx).toFixed(2) + "px," + (st.y - B.h / B.s / 2 + fy).toFixed(2) + "px,0) scale(" + sc.toFixed(4) + ")";
+      B.el.classList.toggle("is-on", st.a > 0.6);
     }
 
     function progress() {
@@ -717,6 +815,7 @@
         else { t.ox *= free; t.oy *= free; }
         draw(t, fx + t.ox, fy + t.oy, rot);
       }
+      showBubble(p, now);
     }
 
     function settle() { shownP = progress(); show(shownP, 0, 0); }
@@ -746,7 +845,6 @@
       render(true);
       reveal();
       startLoop();
-      showBubble();
       if (/[?&]tune\b/.test(location.search)) buildTuner();
     });
 
@@ -804,23 +902,6 @@
         show(shownP, now, dt);
       }
       requestAnimationFrame(frame);
-    }
-
-    /* ---------- "let's work together" message bubble ---------- */
-    function showBubble() {
-      var text = site.cta_text || "";
-      var href = site.cta_link || (site.email ? "mailto:" + site.email : "");
-      if (!text || !href) return;
-      var el = document.createElement("a");
-      el.className = "bubble";
-      el.href = href;
-      if (!/^mailto:/.test(href)) { el.target = "_blank"; el.rel = "noopener"; }
-      el.innerHTML = '<span class="bubble-body"><span class="bubble-text">' + esc(text) + '</span>' +
-        '<svg class="bubble-tail" viewBox="0 0 30 22" aria-hidden="true"><path d="M21 0C21 9 17 16 0 22C10 22.5 20 20.5 27 15.5L30 0Z"/></svg>' +
-        '<span class="bubble-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></span></span>';
-      document.body.appendChild(el);
-      var wait = reduceMotion ? 0 : num(scene.duration_ms, 2500) + 1400;
-      setTimeout(function () { el.classList.add("is-in"); }, wait);
     }
 
     /* ---------- tuning panel (?tune) ---------- */

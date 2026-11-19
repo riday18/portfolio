@@ -337,20 +337,19 @@ body.desk-menu-visible .nav-links { opacity: 0; pointer-events: none; }
 
 /* ---------- "let's work together" message bubble ---------- */
 .bubble {
-  position: fixed;
-  z-index: 30;
-  right: clamp(16px, 7vw, 140px);
-  bottom: clamp(24px, 13vh, 150px);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
   display: block;
   color: #0b0b0b;
   text-decoration: none;
   opacity: 0;
-  transform: scale(0.6);
-  transform-origin: 0% 100%;
+  transform-origin: 50% 50%;
   pointer-events: none;
-  transition: opacity 0.35s ease, transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
 }
-.bubble.is-in { opacity: 1; transform: none; pointer-events: auto; }
+.bubble.is-on { pointer-events: auto; }
 .bubble-body {
   position: relative;
   display: block;
@@ -480,5 +479,5 @@ body.desk-menu-visible .nav-links { opacity: 0; pointer-events: none; }
   .scene.is-placeholder.is-in .scene-art, .viewer[open] { animation: none; }
   .scene-px { transition: none; }
   .tile-a, .tile-glow { transition: none; }
-  .bubble, .bubble-body, .bubble-btn { transition: none; }
+  .bubble-body, .bubble-btn { transition: none; }
 }
