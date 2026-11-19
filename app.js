@@ -54,7 +54,8 @@
 
   var DEFAULT_COLLAGE = {
     base_size: 0.62, falloff: 0.9, falloff_curve: 1.4, min_scale: 0.28, relevance_weight: 0.75,
-    randomness: 0.35, gap: 22, spread: 0.85, float: 1, cursor: 1, hover_scale: 1.06, mobile_scale: 1.5, seed: 7, reshuffle: false
+    randomness: 0.35, gap: 22, spread: 0.85, float: 1, cursor: 1, hover_scale: 1.06, mobile_scale: 1.5, seed: 7, reshuffle: false,
+    grid_crop: 0.7, scroll_length: 1
   };
   var DEFAULT_SCENE = {
     animation: "", duration_ms: 2500, screen_image: "", width_desktop: 100, width_mobile: 170,
@@ -75,14 +76,14 @@
     });
   }
 
-  Promise.all([load("site"), load("projects"), load("experience")])
-    .then(function (d) { start(d[0] || {}, (d[1] && d[1].projects) || [], (d[2] && d[2].entries) || []); })
+  Promise.all([load("site"), load("projects")])
+    .then(function (d) { start(d[0] || {}, (d[1] && d[1].projects) || []); })
     .catch(function (e) {
       document.body.insertAdjacentHTML("afterbegin",
         '<p style="padding:8rem 1.5rem 0">The site content could not load. If you opened this file directly, run a local server instead (see README). ' + esc(e.message) + "</p>");
     });
 
-  function start(site, projects, entries) {
+  function start(site, projects) {
     var scene = Object.assign({}, DEFAULT_SCENE, site.scene || {});
     var opts = Object.assign({}, DEFAULT_COLLAGE, site.collage || {});
     var domain = site.domain || "riday.space";
@@ -92,63 +93,30 @@
       p.relevance = clamp(num(p.relevance, 5), 1, 10);
     });
 
-    /* ---------- text, nav, about, contact ---------- */
+    /* ---------- text and nav (about and contact are off the page for now) ---------- */
     document.title = domain;
     $("#nav-logo").textContent = domain;
-    $("#foot-domain").textContent = domain;
-    $("#foot-year").textContent = "© " + new Date().getFullYear() + " " + (site.name || "");
 
     var socials = [];
     if (site.instagram) socials.push({ k: "instagram", href: "https://instagram.com/" + encodeURIComponent(String(site.instagram).replace(/^@/, "")), label: "Instagram" });
     if (site.linkedin) socials.push({ k: "linkedin", href: site.linkedin, label: "LinkedIn" });
     if (site.email) socials.push({ k: "mail", href: "mailto:" + site.email, label: "Email" });
-    var socialHTML = socials.map(function (s) {
+    $("#nav-social").innerHTML = socials.map(function (s) {
       return '<a href="' + esc(s.href) + '" aria-label="' + s.label + '"' + (s.k === "mail" ? "" : ' rel="noopener" target="_blank"') + ">" + ICONS[s.k] + "</a>";
     }).join("");
-    $("#nav-social").innerHTML = socialHTML;
-    $("#contact-social").innerHTML = socialHTML;
 
     var photo = $("#intro-photo");
     if (site.photo) photo.innerHTML = '<img src="' + esc(site.photo) + '" alt="' + esc(site.name || "") + '">';
-    else photo.textContent = String(site.name || "R").charAt(0);
     $("#intro-text").textContent = site.intro || "";
     $("#screen-text").textContent = site.intro || "";
     if (site.photo) $("#screen-photo").innerHTML = '<img src="' + esc(site.photo) + '" alt="">';
 
-    $("#about-lead").textContent = site.about || "";
-    $("#ops-intro").textContent = site.operations_intro || "";
-    $("#roles").innerHTML = entries.filter(function (e) { return e.group === "design"; }).map(function (e) {
-      return "<li><strong>" + esc(e.org) + "</strong><span>" + esc(e.role) + "</span><span>" + esc(e.dates) + "</span></li>";
-    }).join("");
-    $("#ops-list").innerHTML = entries.filter(function (e) { return e.group === "operations"; }).map(function (e) {
-      var meta = [e.place, e.dates, e.tag].filter(Boolean).map(esc).join(", ");
-      return '<article class="op"><div><h4>' + esc(e.org) + '</h4><p class="op-role">' + esc(e.role) +
-        '</p><p class="op-meta">' + meta + "</p></div><ul>" +
-        (e.points || []).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul></article>";
-    }).join("");
-
-    var mail = $("#contact-mail");
-    mail.href = "mailto:" + (site.email || "");
-    mail.textContent = site.email || "";
-    $("#contact-meta").textContent = site.location || "";
-
-    /* active nav link */
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav-links a, .screen-nav a"));
-    function setActive(id) { navLinks.forEach(function (a) { a.setAttribute("aria-current", a.getAttribute("data-section") === id ? "true" : "false"); }); }
-    setActive("work");
-    if ("IntersectionObserver" in window) {
-      var seen = {};
-      var io = new IntersectionObserver(function (list) {
-        list.forEach(function (en) { seen[en.target.id] = en.intersectionRatio; });
-        var best = "work", bestR = -1;
-        ["work", "about", "contact"].forEach(function (id) { if ((seen[id] || 0) > bestR) { bestR = seen[id] || 0; best = id; } });
-        setActive(best);
-      }, { threshold: [0, 0.15, 0.3, 0.5, 0.7, 1] });
-      ["work", "about", "contact"].forEach(function (id) { io.observe(document.getElementById(id)); });
-    }
+    navLinks.forEach(function (a) { a.setAttribute("aria-current", a.getAttribute("data-section") === "work" ? "true" : "false"); });
 
     /* ================= stage: scene + collage ================= */
     var stage = $("#work");
+    var pin = $("#stage-pin");
     var intro = $("#intro");
     var sceneEl = $("#scene");
     var sceneArt = $("#scene-art");
@@ -415,8 +383,8 @@
       var media = p.cover ? '<img src="' + esc(p.cover) + '" alt="" loading="lazy" decoding="async">' : '<span class="tile-label">' + esc(p.title) + "</span>";
       if (p.cover && p.preview) media += '<img class="tile-peek" src="' + esc(p.preview) + '" alt="" loading="lazy" decoding="async" style="position:absolute;inset:0;opacity:0;transition:opacity .35s">';
       var glow = p.cover ? '<span class="tile-glow"><img src="' + esc(p.cover) + '" alt="" loading="lazy" decoding="async"></span>' : '<span class="tile-glow is-blank"></span>';
-      return '<li class="tile" data-i="' + idx + '" style="left:' + r.x.toFixed(1) + "px;top:" + r.y.toFixed(1) + "px;width:" + r.w.toFixed(1) + "px;height:" + r.h.toFixed(1) +
-        "px;--blur:" + blur.toFixed(1) + "px;--label:" + clamp(r.w * 0.045, 10, 15).toFixed(1) + "px;--hover:" + num(opts.hover_scale, 1.06) + '">' +
+      return '<li class="tile" data-i="' + idx + '" style="width:' + r.w.toFixed(1) + "px;height:" + r.h.toFixed(1) +
+        "px;transform:translate3d(" + r.x.toFixed(1) + "px," + r.y.toFixed(1) + "px,0);--blur:" + blur.toFixed(1) + "px;--label:" + clamp(r.w * 0.045, 10, 15).toFixed(1) + "px;--hover:" + num(opts.hover_scale, 1.06) + '">' +
         '<div class="tile-pop"><a class="tile-a" href="#/work/' + esc(p.slug) + '" aria-label="' + esc(p.title) + (p.year ? ", " + esc(p.year) : "") + '">' +
         glow + '<span class="tile-media">' + media + "</span></a></div></li>";
     }
@@ -424,17 +392,88 @@
     var seed = num(opts.seed, 7);
     if (opts.reshuffle) seed = Math.floor(Math.random() * 1e9);
 
+    /* ---------- scrolling: the desk rises, the collage flows into a grid ----------
+       The stage stays pinned while you scroll. The desk moves up with the scroll and leaves the screen
+       at P_OFF of the way through. Each project drifts from its collage spot towards a grid cell, pushed
+       around the desk's shape and its neighbours by a small spring simulation. Projects start growing
+       when the first one beside the desk has dropped below it, and finish just after the desk is gone. */
+    var P_OFF = 0.8;
+    var plan = null;
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function smooth(a, b, x) { var t = b > a ? clamp((x - a) / (b - a), 0, 1) : (x >= b ? 1 : 0); return t * t * (3 - 2 * t); }
+    function easeIO(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function cropAspect(a, cellA, crop) { return Math.exp(lerp(Math.log(a), Math.log(cellA), crop)); }
+
+    /* the most even grid for this many images on this screen: tries every column count and keeps
+       the one where the images (fitted into their cells) cover the most of the screen */
+    function gridLayout(g, aspects, gap, crop) {
+      var n = aspects.length;
+      var m = gap * 1.2;
+      var x0 = m, y0 = g.navH + m, AW = g.W - 2 * m, AH = g.H - g.navH - 2 * m;
+      var best = null;
+      for (var c = 1; c <= n; c++) {
+        var r = Math.ceil(n / c);
+        var cw = (AW - gap * (c - 1)) / c, ch = (AH - gap * (r - 1)) / r;
+        if (cw <= 20 || ch <= 20) continue;
+        var cover = 0;
+        aspects.forEach(function (a) {
+          var asp = cropAspect(a, cw / ch, crop), w = Math.min(cw, ch * asp);
+          cover += w * (w / asp);
+        });
+        if (!best || cover > best.cover) best = { c: c, r: r, cw: cw, ch: ch, cover: cover };
+      }
+      if (!best) return null;
+      var cells = [];
+      for (var i = 0; i < n; i++) {
+        var row = Math.floor(i / best.c), col = i % best.c;
+        var inRow = row === best.r - 1 ? n - row * best.c : best.c;
+        var off = (best.c - inRow) * (best.cw + gap) / 2;
+        cells.push({ cx: x0 + off + col * (best.cw + gap) + best.cw / 2, cy: y0 + row * (best.ch + gap) + best.ch / 2 });
+      }
+      return { cells: cells, cw: best.cw, ch: best.ch };
+    }
+
+    function migration(t, p) { return easeIO(clamp((p - t.s) / (plan.g1 - t.s), 0, 1)); }
+
     function render(animate) {
       geom = computeGeom();
       placeScene(geom);
       var res = layout(geom, opts, seed);
       res.tiles.sort(function (a, b) { return a.d - b.d; });
       collageEl.innerHTML = res.tiles.map(tileHTML).join("");
-      var deskBottom = geom.bottom + res.gap * 2;
-      stage.style.height = Math.max(window.innerHeight, res.bottom + res.gap * 3, deskBottom) + "px";
       var lis = collageEl.children;
       var stagger = clamp(1500 / Math.max(res.tiles.length, 1), 35, 90);
       var rng = rngFrom(seed + 1);
+      var gap = res.gap;
+      var crop = clamp(num(opts.grid_crop, 0.7), 0, 1);
+
+      /* how far the desk travels, and how much scrolling that takes (1:1 with the scroll by default) */
+      var box = sceneBox();
+      var desk = { l: geom.scene.x + geom.scene.w * box.l, r: geom.scene.x + geom.scene.w * box.r, t: geom.scene.y + geom.scene.h * box.t, b: geom.bottom };
+      var T = Math.max(1, desk.b - geom.navH + gap);
+      var scrollLen = T / P_OFF * clamp(num(opts.scroll_length, 1), 0.3, 4);
+      stage.style.height = Math.round(window.innerHeight + scrollLen) + "px";
+      var g1 = Math.min(0.97, P_OFF + 0.08);
+      plan = { T: T, g0: 0.3, g1: g1, pad: gap * 0.55, navH: geom.navH, obst: [geom.mon].concat(geom.clear || []) };
+
+      /* pair every project with a grid cell, closest pairs first, so nothing travels further than it has to */
+      var grid = gridLayout(geom, res.tiles.map(function (e) { return e.it.aspect; }), gap, crop);
+      var target = [];
+      if (grid) {
+        var pairs = [];
+        res.tiles.forEach(function (e, i) {
+          var cx = e.r.x + e.r.w / 2, cy = e.r.y + e.r.h / 2;
+          grid.cells.forEach(function (c, j) { pairs.push([Math.hypot(cx - c.cx, cy - c.cy), i, j]); });
+        });
+        pairs.sort(function (a, b) { return a[0] - b[0]; });
+        var usedT = {}, usedC = {};
+        pairs.forEach(function (pr) {
+          if (usedT[pr[1]] || usedC[pr[2]]) return;
+          usedT[pr[1]] = usedC[pr[2]] = true;
+          target[pr[1]] = grid.cells[pr[2]];
+        });
+      }
+
       tiles = res.tiles.map(function (e, i) {
         var li = lis[i];
         if (animate) li.style.setProperty("--delay", Math.round(i * stagger) + "ms");
@@ -445,13 +484,111 @@
           a.addEventListener("mouseenter", function () { peek.style.opacity = "1"; });
           a.addEventListener("mouseleave", function () { peek.style.opacity = "0"; });
         }
+        var A = { cx: e.r.x + e.r.w / 2, cy: e.r.y + e.r.h / 2, w: e.r.w, h: e.r.h };
+        var B = A;
+        if (target[i]) {
+          var asp = cropAspect(e.it.aspect, grid.cw / grid.ch, crop);
+          var bw = Math.min(grid.cw, grid.ch * asp);
+          B = { cx: target[i].cx, cy: target[i].cy, w: bw, h: bw / asp };
+        }
         return {
-          el: li, cx: e.r.x + e.r.w / 2, cy: e.r.y + e.r.h / 2, size: Math.sqrt(e.r.w * e.r.h),
+          el: li, A: A, B: B, s: g1 * (0.03 + 0.32 * rng()),
+          x: A.cx, y: A.cy, w: A.w, h: A.h, vx: 0, vy: 0, dw: A.w, dh: A.h,
           p1: rng() * 6.283, p2: rng() * 6.283, s1: 0.00045 + rng() * 0.00035, s2: 0.0004 + rng() * 0.0003,
           amp: 0.6 + rng() * 0.6, rot: (rng() - 0.5), ox: 0, oy: 0
         };
       });
+
+      /* growth starts when the first project beside the desk has dropped below the rising desk */
+      var g0 = null;
+      var side = tiles.filter(function (t) { return t.A.cy + t.A.h / 2 > desk.t && t.A.cy - t.A.h / 2 < desk.b; });
+      for (var p = 0; p <= P_OFF && g0 === null; p += 0.004) {
+        var deskBottom = desk.b - T * (p / P_OFF);
+        for (var k = 0; k < side.length; k++) {
+          var t = side[k], m = migration(t, p);
+          var cx = lerp(t.A.cx, t.B.cx, m), cy = lerp(t.A.cy, t.B.cy, m);
+          if (cy - t.A.h / 2 >= deskBottom && cx + t.A.w / 2 > desk.l && cx - t.A.w / 2 < desk.r) { g0 = p; break; }
+        }
+      }
+      plan.g0 = clamp(g0 === null ? P_OFF * 0.4 : g0, 0.1, g1 - 0.25);
+
+      /* start in the right place for wherever the page is scrolled to */
+      settle();
       return res;
+    }
+
+    function progress() {
+      var max = stage.offsetHeight - window.innerHeight;
+      return max > 0 ? clamp(-stage.getBoundingClientRect().top / max, 0, 1) : 0;
+    }
+
+    /* one simulation step. snap = jump straight to the targets (used for reduced motion and resizes) */
+    function simulate(p, dt, snap) {
+      var dy = -plan.T * clamp(p / P_OFF, 0, 1);
+      sceneEl.style.transform = dy ? "translate3d(0," + dy.toFixed(2) + "px,0)" : "";
+      var grow = smooth(plan.g0, plan.g1, p);
+      var pad = plan.pad;
+      var obst = plan.obst.map(function (o) { return { l: o.x - pad, r: o.x + o.w + pad, t: o.y + dy - pad, b: o.y + o.h + dy + pad }; })
+        .filter(function (o) { return o.b > plan.navH + pad; }); /* once a part is hidden behind the navbar it stops pushing */
+      var kSpring = 0.075, damp = Math.pow(0.8, dt), sizeK = 1 - Math.pow(0.82, dt);
+      var i, t;
+      for (i = 0; i < tiles.length; i++) {
+        t = tiles[i];
+        var m = migration(t, p);
+        var tx = lerp(t.A.cx, t.B.cx, m), ty = lerp(t.A.cy, t.B.cy, m);
+        var tw = lerp(t.A.w, t.B.w, grow), th = lerp(t.A.h, t.B.h, grow);
+        if (snap) { t.x = tx; t.y = ty; t.w = tw; t.h = th; t.vx = t.vy = 0; continue; }
+        t.vx = (t.vx + (tx - t.x) * kSpring * dt) * damp;
+        t.vy = (t.vy + (ty - t.y) * kSpring * dt) * damp;
+        t.x += t.vx * dt; t.y += t.vy * dt;
+        t.w += (tw - t.w) * sizeK; t.h += (th - t.h) * sizeK;
+      }
+      var passes = snap ? 8 : 2;
+      for (var pass = 0; pass < passes; pass++) {
+        /* neighbours make room for each other */
+        for (i = 0; i < tiles.length; i++) {
+          var a = tiles[i];
+          for (var j = i + 1; j < tiles.length; j++) {
+            var b = tiles[j];
+            var ox = (a.w + b.w) / 2 + pad - Math.abs(a.x - b.x);
+            var oy = (a.h + b.h) / 2 + pad - Math.abs(a.y - b.y);
+            if (ox <= 0 || oy <= 0) continue;
+            if (ox < oy) { var sx = (a.x < b.x ? -1 : 1) * ox * 0.18; a.x += sx; b.x -= sx; }
+            else { var sy = (a.y < b.y ? -1 : 1) * oy * 0.18; a.y += sy; b.y -= sy; }
+          }
+        }
+        /* the desk is solid: anything it touches is pushed out the shortest way round its shape */
+        for (i = 0; i < tiles.length; i++) {
+          t = tiles[i];
+          for (var k = 0; k < obst.length; k++) {
+            var o = obst[k];
+            var pl = t.x + t.w / 2 - o.l, pr = o.r - (t.x - t.w / 2), pu = t.y + t.h / 2 - o.t, pd = o.b - (t.y - t.h / 2);
+            if (pl <= 0 || pr <= 0 || pu <= 0 || pd <= 0) continue;
+            /* sliding sideways round the desk is preferred to riding up on top of it */
+            var mn = Math.min(pl, pr, pu * 1.6, pd);
+            if (mn === pu * 1.6) { t.y -= pu; if (t.vy > 0) t.vy = 0; }
+            else if (mn === pd) { t.y += pd; if (t.vy < 0) t.vy = 0; }
+            else if (mn === pl) { t.x -= pl; if (t.vx > 0) t.vx = 0; }
+            else { t.x += pr; if (t.vx < 0) t.vx = 0; }
+          }
+        }
+      }
+      return grow;
+    }
+
+    function draw(t, fx, fy, rot) {
+      if (Math.abs(t.w - t.dw) > 0.25 || Math.abs(t.h - t.dh) > 0.25) {
+        t.dw = t.w; t.dh = t.h;
+        t.el.style.width = t.w.toFixed(1) + "px";
+        t.el.style.height = t.h.toFixed(1) + "px";
+      }
+      t.el.style.transform = "translate3d(" + (t.x - t.w / 2 + fx).toFixed(2) + "px," + (t.y - t.h / 2 + fy).toFixed(2) + "px,0)" + (rot ? " rotate(" + rot.toFixed(3) + "deg)" : "");
+    }
+
+    function settle() {
+      if (!plan) return;
+      simulate(progress(), 1, true);
+      for (var i = 0; i < tiles.length; i++) draw(tiles[i], 0, 0, 0);
     }
 
     function reveal() {
@@ -495,7 +632,17 @@
       }, 180);
     });
 
-    /* ---------- float + cursor ---------- */
+    /* reduced motion: no simulation or float, the layout just follows the scroll */
+    if (reduceMotion) {
+      var queued = false;
+      window.addEventListener("scroll", function () {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(function () { queued = false; settle(); });
+      }, { passive: true });
+    }
+
+    /* ---------- simulation, float and cursor ---------- */
     var mouse = { x: 0, y: 0, active: false };
     window.addEventListener("pointermove", function (e) {
       if (e.pointerType !== "mouse") return;
@@ -504,22 +651,24 @@
     document.addEventListener("pointerleave", function () { mouse.active = false; });
     window.addEventListener("blur", function () { mouse.active = false; });
 
-    var visible = true, running = false;
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (list) { visible = list[0].isIntersecting; if (visible) startLoop(); }).observe(stage);
-    }
+    var running = false, lastNow = 0;
     document.addEventListener("visibilitychange", function () { if (!document.hidden) startLoop(); });
 
     function startLoop() {
       if (running || reduceMotion) return;
       running = true;
+      lastNow = 0;
       requestAnimationFrame(frame);
     }
 
     function frame(now) {
-      if (!visible || document.hidden) { running = false; return; }
-      var fl = num(opts.float, 1), cu = num(opts.cursor, 1);
-      var rect = stage.getBoundingClientRect();
+      if (document.hidden) { running = false; return; }
+      if (!plan) { requestAnimationFrame(frame); return; }
+      var dt = lastNow ? clamp((now - lastNow) / 16.667, 0.25, 3) : 1;
+      lastNow = now;
+      var grow = simulate(progress(), dt, false);
+      var fl = num(opts.float, 1) * (1 - 0.65 * grow), cu = num(opts.cursor, 1);
+      var rect = pin.getBoundingClientRect();
       var mx = mouse.x - rect.left, my = mouse.y - rect.top;
       var reach = geom ? Math.max(200, geom.mon.w * 0.55) : 300;
       for (var i = 0; i < tiles.length; i++) {
@@ -528,17 +677,16 @@
         var fy = Math.cos(now * t.s2 + t.p2) * 6 * fl * t.amp;
         var tx = 0, ty = 0;
         if (mouse.active && cu > 0) {
-          var dx = t.cx - mx, dy = t.cy - my;
+          var dx = t.x - mx, dy = t.y - my;
           var dist = Math.max(Math.hypot(dx, dy), 1);
           var f = Math.exp(-(dist * dist) / (2 * reach * reach));
           var push = cu * 18 * f;
           tx = dx / dist * push - (mx - rect.width / 2) / rect.width * cu * 10;
-          ty = dy / dist * push - (my - window.innerHeight / 2) / window.innerHeight * cu * 8;
+          ty = dy / dist * push - (my - rect.height / 2) / rect.height * cu * 8;
         }
         t.ox += (tx - t.ox) * 0.07;
         t.oy += (ty - t.oy) * 0.07;
-        var rot = Math.sin(now * t.s2 * 0.8 + t.p1) * 0.35 * fl * t.rot;
-        t.el.style.transform = "translate3d(" + (fx + t.ox).toFixed(2) + "px," + (fy + t.oy).toFixed(2) + "px,0) rotate(" + rot.toFixed(3) + "deg)";
+        draw(t, fx + t.ox, fy + t.oy, Math.sin(now * t.s2 * 0.8 + t.p1) * 0.35 * fl * t.rot);
       }
       requestAnimationFrame(frame);
     }
@@ -557,7 +705,9 @@
         ["float", "Float amount", 0, 3, 0.05],
         ["cursor", "Cursor effect", 0, 3, 0.05],
         ["hover_scale", "Hover size", 1, 1.25, 0.01],
-        ["mobile_scale", "Phone size boost", 0.5, 3, 0.05]
+        ["mobile_scale", "Phone size boost", 0.5, 3, 0.05],
+        ["grid_crop", "Grid evenness (crop)", 0, 1, 0.05],
+        ["scroll_length", "Scroll length", 0.3, 3, 0.05]
       ];
       var box = document.createElement("aside");
       box.className = "tune";

@@ -15,9 +15,9 @@ Personal portfolio for Riday Raheja, a 3D artist (product visualization, motion 
 - Source of truth: Figma file https://www.figma.com/design/gOoVYw4R4R1XV59BMonLDO/website
   - Frame "home page" (2:3): landing page.
   - Frame "Animations" (11:7): collage tiles and the hover state.
-- Mostly a one-pager with a decent scroll: landing (work) → about (includes operations roles) → contact.
+- One screen, pinned while you scroll: the desk scrolls away and the collage turns into a grid (see below). The about and contact sections were removed in Nov 2026; Riday has a plan to bring them back in another form. Their data is still in `content/experience.json` and `site.json`, and the old version is on the `backup-before-scroll-grid` branch. The navbar "about" / "contact" links currently go nowhere.
 - Black background, Inter. Navbar: 111px black bar (at 1920 wide) with `box-shadow: 0 4px 59.2px rgba(255,255,255,0.25)`; links "work / about / contact" left, glowing "riday.space" logo centred (Inter Black, white text-shadow), Instagram / LinkedIn / Mail icons right. Active link glows.
-- Intro under the navbar: round profile photo + the intro text, centred.
+- The intro text sits on the desk's main monitor. No profile photo for now: without one the text fills the monitor; adding a photo in the admin brings back the photo + text layout.
 - Sizes scale from the 1920px Figma frame using clamp().
 
 ## Landing animation and collage (the main feature)
@@ -37,7 +37,13 @@ Personal portfolio for Riday Raheja, a 3D artist (product visualization, motion 
   - All tuning values live in `site.json` → `collage` and `scene`, and are exposed in the admin under Site settings.
   - Adding `?tune` to the URL opens a live slider panel with a falloff-curve graph.
   - Until the real desk webp is uploaded, a stand-in desk SVG is drawn. When the webp arrives, set `scene.monitor_*` (monitor screen box in % of the webp) and `scene.clear_areas` to match it.
-  - Respect `prefers-reduced-motion` (no float, no pop-in).
+  - Respect `prefers-reduced-motion` (no float, no pop-in, no simulation lag).
+- Scroll (app.js, `render` / `simulate`):
+  - `.stage` is a tall scroll track; `.stage-pin` is sticky at 100vh and holds the desk and tiles.
+  - The desk moves up 1:1 with the scroll and is gone (behind the navbar) at `P_OFF` (0.8) of the track.
+  - Each tile has a collage spot (A) and a grid cell (B). Cells come from `gridLayout` (column count that covers the most screen), paired closest-first. Tiles drift A → B with staggered easing, via a spring, pushed out of the desk's shape (monitor + clear areas, preferring sideways) and apart from each other.
+  - Growth: starts when the first tile beside the desk has dropped below it (`plan.g0`), finishes just after the desk is off screen (`plan.g1`).
+  - Tunables in `site.json` → `collage`: `grid_crop` (0 = images keep their shapes in the grid, 1 = all cropped to the cell shape) and `scroll_length` (1 = desk moves at scroll speed). Both are in `?tune` and the admin.
 
 ## Content rules
 
