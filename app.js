@@ -278,12 +278,28 @@
     }
 
     var scenePx = $("#scene-px"), screenMain = $("#screen-main"), screenNav = $("#screen-nav");
+    function fitScreenText() {
+      var t = $("#screen-text"), room = screenMain.clientHeight - 64, lo = 16, hi = 32;
+      function set(px) { t.style.fontSize = px + "px"; t.style.lineHeight = Math.round(px * 1.28) + "px"; }
+      for (var i = 0; i < 10; i++) {
+        var mid = (lo + hi) / 2;
+        set(mid);
+        if (t.scrollHeight <= room) lo = mid; else hi = mid;
+      }
+      set(Math.floor(lo * 2) / 2);
+    }
     (function setupScreens() {
       var P = 1920;
       screenMain.style.left = pct(scene.monitor_left, 30) * P + "px";
       screenMain.style.top = pct(scene.monitor_top, 40) * P + "px";
       screenMain.style.width = pct(scene.monitor_width, 30) * P + "px";
       screenMain.style.height = pct(scene.monitor_height, 20) * P + "px";
+      /* no profile photo: the intro text takes the whole monitor, sized to fill it */
+      if (!site.photo) {
+        screenMain.classList.add("no-photo");
+        fitScreenText();
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitScreenText);
+      }
       var q = Array.isArray(scene.nav_quad) && scene.nav_quad.length === 4 ? scene.nav_quad : null;
       if (q) {
         screenNav.style.transform = quadMatrix(246, 488, q.map(function (p) { return [num(p[0], 0) / 100 * P, num(p[1], 0) / 100 * P]; }));

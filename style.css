@@ -202,6 +202,9 @@ img, video, iframe { max-width: 100%; display: block; }
   background: #1c1c1c;
 }
 .screen-photo img { width: 100%; height: 100%; object-fit: cover; }
+.screen-main.no-photo { padding: 32px 44px; }
+.screen-main.no-photo .screen-photo { display: none; }
+.screen-main.no-photo .screen-text { color: rgba(255, 255, 255, 0.85); text-wrap: pretty; }
 .screen-text {
   margin: 0;
   font-weight: 500;
